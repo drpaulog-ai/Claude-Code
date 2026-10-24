@@ -66,11 +66,12 @@ fun GameScreen(vm: PuzzleViewModel, game: GameUi) {
         BoxWithConstraints(Modifier.safeDrawingPadding()) {
             // O tabuleiro ocupa 85% da altura do ecrã; o resto fica para a barra de cima.
             val boardHeight = maxHeight * 0.85f
+            val headerHeight = maxHeight - boardHeight
             Column(Modifier.fillMaxSize()) {
                 Row(
                     Modifier
                         .fillMaxWidth()
-                        .height(maxHeight - boardHeight)
+                        .height(headerHeight)
                         .padding(horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {

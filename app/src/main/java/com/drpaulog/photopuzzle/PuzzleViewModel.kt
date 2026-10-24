@@ -1,0 +1,159 @@
+package com.drpaulog.photopuzzle
+
+import android.app.Application
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
+import android.net.Uri
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import coil.imageLoader
+import coil.request.ImageRequest
+import coil.size.Scale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+val GRID_SIZES = listOf(6, 8, 10)
+
+data class GameUi(
+    val photoId: Long?,
+    val levelIndex: Int?,
+    val gridSize: Int,
+    val image: ImageBitmap?,
+    val cells: IntArray,
+    val selected: Set<Int> = emptySet(),
+    /** Célula tocada primeiro: é esta peça que vai para a célula do segundo toque. */
+    val anchor: Int = -1,
+    val moves: Int = 0,
+    val solved: Boolean = false,
+    val loadError: Boolean = false,
+)
+
+class PuzzleViewModel(app: Application) : AndroidViewModel(app) {
+
+    private val repo = PhotoRepository(app)
+
+    var photos by mutableStateOf<List<Photo>>(emptyList())
+        private set
+    var hasAccess by mutableStateOf(repo.hasPhotoAccess())
+        private set
+    var gridSize by mutableStateOf(repo.gridSize)
+        private set
+    var completed by mutableStateOf(repo.completedLevels(gridSize))
+        private set
+    var game by mutableStateOf<GameUi?>(null)
+        private set
+
+    private var board: PuzzleBoard? = null
+    private var gameToken = 0
+
+    fun refreshPhotos() {
+        hasAccess = repo.hasPhotoAccess()
+        viewModelScope.launch {
+            photos = withContext(Dispatchers.IO) { repo.loadPhotos() }
+        }
+    }
+
+    fun selectGridSize(size: Int) {
+        gridSize = size
+        repo.gridSize = size
+        completed = repo.completedLevels(size)
+    }
+
+    fun bestMoves(photoId: Long): Int? = repo.bestMoves(gridSize, photoId)
+
+    fun startLevel(index: Int) {
+        val photo = photos.getOrNull(index) ?: return
+        start(photo.uri, photo.id, index)
+    }
+
+    fun startCustom(uri: Uri) = start(uri, null, null)
+
+    fun nextLevel() {
+        val current = game?.levelIndex
+        if (current != null && current + 1 < photos.size) startLevel(current + 1) else exitGame()
+    }
+
+    fun restart() {
+        val g = game ?: return
+        if (g.image == null) return
+        val fresh = PuzzleBoard.shuffled(g.gridSize)
+        board = fresh
+        game = g.copy(cells = fresh.cells(), selected = emptySet(), anchor = -1, moves = 0, solved = false)
+    }
+
+    fun exitGame() {
+        gameToken++
+        game = null
+        board = null
+    }
+
+    private fun start(uri: Uri, photoId: Long?, levelIndex: Int?) {
+        val size = gridSize
+        val fresh = PuzzleBoard.shuffled(size)
+        board = fresh
+        game = GameUi(photoId, levelIndex, size, image = null, cells = fresh.cells())
+        val token = ++gameToken
+        viewModelScope.launch {
+            val image = loadSquareImage(uri, size)
+            val g = game ?: return@launch
+            if (token != gameToken) return@launch
+            game = if (image != null) g.copy(image = image) else g.copy(loadError = true)
+        }
+    }
+
+    /** Toque numa célula: o primeiro escolhe a peça/grupo, o segundo indica para onde vai. */
+    fun tap(cell: Int): TapResult {
+        val g = game ?: return TapResult.Ignored
+        val b = board ?: return TapResult.Ignored
+        if (g.solved || g.image == null) return TapResult.Ignored
+
+        if (g.selected.isEmpty()) {
+            if (b.isLocked(cell)) return TapResult.Rejected
+            game = g.copy(selected = b.groupOf(cell), anchor = cell)
+            return TapResult.Selected
+        }
+        if (cell in g.selected) {
+            game = g.copy(selected = emptySet(), anchor = -1)
+            return TapResult.Ignored
+        }
+        if (!b.move(g.anchor, cell)) {
+            game = g.copy(selected = emptySet(), anchor = -1)
+            return TapResult.Rejected
+        }
+        val solved = b.isSolved()
+        game = g.copy(cells = b.cells(), selected = emptySet(), anchor = -1, moves = g.moves + 1, solved = solved)
+        if (solved && g.photoId != null) {
+            repo.markCompleted(g.gridSize, g.photoId, g.moves + 1)
+            completed = repo.completedLevels(gridSize)
+        }
+        return if (solved) TapResult.Solved else TapResult.Moved
+    }
+
+    private suspend fun loadSquareImage(uri: Uri, gridSize: Int): ImageBitmap? {
+        val app = getApplication<Application>()
+        val request = ImageRequest.Builder(app)
+            .data(uri)
+            .size(1200)
+            .scale(Scale.FILL)
+            .allowHardware(false)
+            .build()
+        val drawable = app.imageLoader.execute(request).drawable as? BitmapDrawable ?: return null
+        return withContext(Dispatchers.Default) {
+            val src = drawable.bitmap
+            // Recorte quadrado central com lado múltiplo do número de peças.
+            val side = minOf(src.width, src.height) / gridSize * gridSize
+            if (side <= 0) return@withContext null
+            val x = (src.width - side) / 2
+            val y = (src.height - side) / 2
+            Bitmap.createBitmap(src, x, y, side, side).asImageBitmap()
+        }
+    }
+}
+
+enum class TapResult { Ignored, Selected, Moved, Rejected, Solved }

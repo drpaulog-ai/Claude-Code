@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 3x3 puzzle grid with one piece out of place -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#FF7AA2F7" android:pathData="M30,30h15v15h-15z M46.5,30h15v15h-15z M63,30h15v15h-15z" />
+    <path android:fillColor="#FF9ECE6A" android:pathData="M30,46.5h15v15h-15z M46.5,46.5h15v15h-15z" />
+    <path android:fillColor="#FFE0AF68" android:pathData="M30,63h15v15h-15z M46.5,63h15v15h-15z M63,63h15v15h-15z" />
+    <path android:fillColor="#FFF7768E" android:pathData="M66,43.5h15v15h-15z" />
+</vector>

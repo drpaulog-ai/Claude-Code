@@ -35,8 +35,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,7 +54,7 @@ import com.drpaulog.photopuzzle.PuzzleViewModel
 fun PhotoSelectionScreen(vm: PuzzleViewModel) {
     val context = LocalContext.current
     val firstTime = vm.levelIds == null
-    val selected = remember { mutableStateListOf<Long>().apply { addAll(vm.levelIds.orEmpty()) } }
+    val selected = vm.draftSelection
 
     LifecycleResumeEffect(Unit) {
         vm.refreshPhotos()
@@ -89,7 +87,7 @@ fun PhotoSelectionScreen(vm: PuzzleViewModel) {
                 ) {
                     Text("${selected.size} selecionadas", style = MaterialTheme.typography.titleSmall)
                     Button(
-                        onClick = { vm.saveLevelPhotos(selected.toSet()) },
+                        onClick = { vm.saveLevelPhotos() },
                         enabled = selected.isNotEmpty(),
                     ) { Text("Usar estas fotos") }
                 }

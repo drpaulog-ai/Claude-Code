@@ -5,6 +5,7 @@ import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.ImageBitmap
@@ -53,6 +54,8 @@ class PuzzleViewModel(app: Application) : AndroidViewModel(app) {
     }
     var editingPhotos by mutableStateOf(false)
         private set
+    /** Fotos marcadas no ecrã de escolha; fica no ViewModel para não se perder ao rodar o ecrã. */
+    val draftSelection = mutableStateListOf<Long>()
     var hasAccess by mutableStateOf(repo.hasPhotoAccess())
         private set
     var gridSize by mutableStateOf(repo.gridSize)
@@ -78,6 +81,8 @@ class PuzzleViewModel(app: Application) : AndroidViewModel(app) {
         get() = hasAccess && (editingPhotos || levelIds == null)
 
     fun editLevelPhotos() {
+        draftSelection.clear()
+        draftSelection.addAll(levelIds.orEmpty())
         editingPhotos = true
     }
 
@@ -85,7 +90,8 @@ class PuzzleViewModel(app: Application) : AndroidViewModel(app) {
         editingPhotos = false
     }
 
-    fun saveLevelPhotos(ids: Set<Long>) {
+    fun saveLevelPhotos() {
+        val ids = draftSelection.toSet()
         repo.saveLevelPhotoIds(ids)
         levelIds = ids
         editingPhotos = false

@@ -19,6 +19,14 @@ jobs:
         run: ./gradlew testDebugUnitTest
       - name: Compilar APK
         run: ./gradlew assembleRelease
+      - name: Compatibilidade do APK (ecrãs, hardware, arquiteturas)
+        run: |
+          AAPT2=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)aapt2
+          "$AAPT2" dump badging app/build/outputs/apk/release/*.apk \
+            | grep -E "^(package|sdkVersion|targetSdkVersion|uses-permission|uses-feature|uses-implied-feature|supports-screens|supports-any-density|densities|native-code|requires-smallest-width|compatible-width-limit|largest-width-limit)" \
+            || true
+          echo "--- native libs no APK:"
+          unzip -l app/build/outputs/apk/release/*.apk | grep "lib/" || echo "(nenhuma — funciona em qualquer processador)"
       - uses: actions/upload-artifact@v4
         with:
           name: puzzle-de-fotos-apk

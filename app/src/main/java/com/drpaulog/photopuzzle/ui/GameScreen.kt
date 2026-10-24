@@ -34,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,7 +61,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun GameScreen(vm: PuzzleViewModel, game: GameUi) {
     val n = game.gridSize
-    var showOriginal by remember { mutableStateOf(false) }
+    var showOriginal by rememberSaveable { mutableStateOf(false) }
 
     Surface(Modifier.fillMaxSize()) {
         BoxWithConstraints(Modifier.safeDrawingPadding()) {

@@ -4,9 +4,12 @@ App Android que transforma as fotos do dispositivo em níveis de puzzle.
 
 ## Como jogar
 
-- Cada foto da galeria é um nível (a mais antiga é o Nível 1). Também podes usar
-  **Escolher foto** para jogar com uma imagem específica.
-- Escolhe o tamanho da grelha: **6×6**, **8×8** ou **10×10**.
+- Ao dar acesso às fotos, escolhes quais queres usar como níveis (nenhuma vem
+  selecionada à partida). Podes mudar a escolha mais tarde no botão **Fotos**.
+  A foto mais antiga escolhida é o Nível 1. Também podes usar **Escolher foto**
+  para jogar com uma imagem específica.
+- Escolhe o tamanho da grelha: **4×4**, **5×5** ou **6×6**.
+- O tabuleiro ocupa 85% da altura do ecrã; a foto é recortada ao centro para esse formato.
 - Toca numa peça e depois noutra célula: as peças trocam de lugar.
 - Peças que ficam encostadas na posição certa uma em relação à outra **unem-se** e
   passam a mover-se juntas como um grupo (a peça tocada vai para a célula do segundo
@@ -36,4 +39,4 @@ Com o Android SDK instalado (ou no Android Studio):
 - `PuzzleBoard.kt` — regras do jogo (trocas, grupos, bloqueio), em Kotlin puro e testada.
 - `PuzzleViewModel.kt` — estado do jogo e carregamento das imagens.
 - `PhotoRepository.kt` — lista as fotos (MediaStore) e guarda o progresso.
-- `ui/` — ecrãs em Jetpack Compose (lista de níveis e tabuleiro animado).
+- `ui/` — ecrãs em Jetpack Compose (escolha das fotos, lista de níveis e tabuleiro animado).

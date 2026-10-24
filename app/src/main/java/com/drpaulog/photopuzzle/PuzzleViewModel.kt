@@ -1,9 +1,9 @@
 package com.drpaulog.photopuzzle
 
 import android.app.Application
-import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -18,7 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-val GRID_SIZES = listOf(6, 8, 10)
+val GRID_SIZES = listOf(4, 5, 6)
 
 data class GameUi(
     val photoId: Long?,
@@ -38,7 +38,20 @@ class PuzzleViewModel(app: Application) : AndroidViewModel(app) {
 
     private val repo = PhotoRepository(app)
 
-    var photos by mutableStateOf<List<Photo>>(emptyList())
+    /** Todas as fotos do dispositivo a que a app tem acesso. */
+    var allPhotos by mutableStateOf<List<Photo>>(emptyList())
+        private set
+    var photosLoaded by mutableStateOf(false)
+        private set
+    /** Fotos escolhidas pelo utilizador para níveis; null enquanto ainda não escolheu. */
+    var levelIds by mutableStateOf(repo.levelPhotoIds())
+        private set
+    /** Fotos que são níveis, pela ordem do dispositivo (mais antiga primeiro). */
+    val photos by derivedStateOf {
+        val ids = levelIds ?: emptySet()
+        allPhotos.filter { it.id in ids }
+    }
+    var editingPhotos by mutableStateOf(false)
         private set
     var hasAccess by mutableStateOf(repo.hasPhotoAccess())
         private set
@@ -55,8 +68,27 @@ class PuzzleViewModel(app: Application) : AndroidViewModel(app) {
     fun refreshPhotos() {
         hasAccess = repo.hasPhotoAccess()
         viewModelScope.launch {
-            photos = withContext(Dispatchers.IO) { repo.loadPhotos() }
+            allPhotos = withContext(Dispatchers.IO) { repo.loadPhotos() }
+            photosLoaded = true
         }
+    }
+
+    /** Depois de dar acesso às fotos, o utilizador escolhe quais quer usar como níveis. */
+    val choosingPhotos: Boolean
+        get() = hasAccess && (editingPhotos || levelIds == null)
+
+    fun editLevelPhotos() {
+        editingPhotos = true
+    }
+
+    fun cancelEditLevelPhotos() {
+        editingPhotos = false
+    }
+
+    fun saveLevelPhotos(ids: Set<Long>) {
+        repo.saveLevelPhotoIds(ids)
+        levelIds = ids
+        editingPhotos = false
     }
 
     fun selectGridSize(size: Int) {
@@ -100,7 +132,7 @@ class PuzzleViewModel(app: Application) : AndroidViewModel(app) {
         game = GameUi(photoId, levelIndex, size, image = null, cells = fresh.cells())
         val token = ++gameToken
         viewModelScope.launch {
-            val image = loadSquareImage(uri, size)
+            val image = loadImage(uri)
             val g = game ?: return@launch
             if (token != gameToken) return@launch
             game = if (image != null) g.copy(image = image) else g.copy(loadError = true)
@@ -135,24 +167,17 @@ class PuzzleViewModel(app: Application) : AndroidViewModel(app) {
         return if (solved) TapResult.Solved else TapResult.Moved
     }
 
-    private suspend fun loadSquareImage(uri: Uri, gridSize: Int): ImageBitmap? {
+    private suspend fun loadImage(uri: Uri): ImageBitmap? {
         val app = getApplication<Application>()
+        // O recorte para o formato do tabuleiro é feito ao desenhar, conforme o espaço no ecrã.
         val request = ImageRequest.Builder(app)
             .data(uri)
-            .size(1200)
+            .size(1600)
             .scale(Scale.FILL)
             .allowHardware(false)
             .build()
         val drawable = app.imageLoader.execute(request).drawable as? BitmapDrawable ?: return null
-        return withContext(Dispatchers.Default) {
-            val src = drawable.bitmap
-            // Recorte quadrado central com lado múltiplo do número de peças.
-            val side = minOf(src.width, src.height) / gridSize * gridSize
-            if (side <= 0) return@withContext null
-            val x = (src.width - side) / 2
-            val y = (src.height - side) / 2
-            Bitmap.createBitmap(src, x, y, side, side).asImageBitmap()
-        }
+        return drawable.bitmap.asImageBitmap()
     }
 }
 

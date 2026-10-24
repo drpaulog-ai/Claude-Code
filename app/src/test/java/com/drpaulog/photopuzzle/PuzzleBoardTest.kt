@@ -80,7 +80,7 @@ class PuzzleBoardTest {
     @Test
     fun shuffledBoardsArePermutationsWithoutLockedPieces() {
         val random = Random(42)
-        for (size in listOf(6, 8, 10)) {
+        for (size in listOf(4, 5, 6)) {
             repeat(20) {
                 val board = PuzzleBoard.shuffled(size, random)
                 assertEquals(size * size, board.cellCount)
@@ -92,7 +92,7 @@ class PuzzleBoardTest {
     @Test
     fun randomMovesAlwaysKeepAPermutation() {
         val random = Random(7)
-        for (size in listOf(6, 8, 10)) {
+        for (size in listOf(4, 5, 6)) {
             val board = PuzzleBoard.shuffled(size, random)
             repeat(2000) {
                 val from = random.nextInt(board.cellCount)
@@ -110,7 +110,7 @@ class PuzzleBoardTest {
     fun greedySolverFinishesEveryGrid() {
         // Coloca cada peça na sua casa com toques sucessivos: o puzzle tem sempre solução.
         val random = Random(3)
-        for (size in listOf(6, 8, 10)) {
+        for (size in listOf(4, 5, 6)) {
             val board = PuzzleBoard.shuffled(size, random)
             var guard = 0
             while (!board.isSolved() && guard++ < 10_000) {

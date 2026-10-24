@@ -55,8 +55,16 @@ class PhotoRepository(private val context: Context) {
         prefs.getInt("best_${gridSize}_$photoId", -1).takeIf { it > 0 }
 
     var gridSize: Int
-        get() = prefs.getInt("grid_size", 6)
+        get() = prefs.getInt("grid_size", GRID_SIZES.first()).takeIf { it in GRID_SIZES } ?: GRID_SIZES.first()
         set(value) = prefs.edit().putInt("grid_size", value).apply()
+
+    /** Ids das fotos escolhidas para níveis, ou null se o utilizador ainda não escolheu nenhuma vez. */
+    fun levelPhotoIds(): Set<Long>? =
+        prefs.getStringSet("level_ids", null)?.mapNotNull { it.toLongOrNull() }?.toSet()
+
+    fun saveLevelPhotoIds(ids: Set<Long>) {
+        prefs.edit().putStringSet("level_ids", ids.map { it.toString() }.toSet()).apply()
+    }
 
     private fun completedKey(gridSize: Int) = "completed_$gridSize"
 

@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.drpaulog.photopuzzle.ui.GameScreen
 import com.drpaulog.photopuzzle.ui.LevelsScreen
+import com.drpaulog.photopuzzle.ui.PhotoSelectionScreen
 import com.drpaulog.photopuzzle.ui.PuzzleTheme
 
 class MainActivity : ComponentActivity() {
@@ -18,11 +19,13 @@ class MainActivity : ComponentActivity() {
             PuzzleTheme {
                 val vm: PuzzleViewModel = viewModel()
                 val game = vm.game
-                if (game == null) {
-                    LevelsScreen(vm)
-                } else {
-                    BackHandler { vm.exitGame() }
-                    GameScreen(vm, game)
+                when {
+                    game != null -> {
+                        BackHandler { vm.exitGame() }
+                        GameScreen(vm, game)
+                    }
+                    vm.choosingPhotos -> PhotoSelectionScreen(vm)
+                    else -> LevelsScreen(vm)
                 }
             }
         }

@@ -5,31 +5,30 @@ import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -55,83 +54,75 @@ import com.drpaulog.photopuzzle.GameUi
 import com.drpaulog.photopuzzle.PuzzleBoard
 import com.drpaulog.photopuzzle.PuzzleViewModel
 import com.drpaulog.photopuzzle.TapResult
-import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(vm: PuzzleViewModel, game: GameUi) {
     val n = game.gridSize
     var showOriginal by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        (game.levelIndex?.let { "Nível ${it + 1}" } ?: "Foto escolhida") + " · ${n}×$n"
-                    )
-                },
-                navigationIcon = {
+    Surface(Modifier.fillMaxSize()) {
+        BoxWithConstraints(Modifier.safeDrawingPadding()) {
+            // O tabuleiro ocupa 85% da altura do ecrã; o resto fica para a barra de cima.
+            val boardHeight = maxHeight * 0.85f
+            Column(Modifier.fillMaxSize()) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(maxHeight - boardHeight)
+                        .padding(horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     IconButton(onClick = vm::exitGame) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
                     }
-                },
-            )
-        },
-    ) { padding ->
-        Column(
-            Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            val locked = game.cells.indices.count { game.cells[it] == it }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("Jogadas: ${game.moves}", style = MaterialTheme.typography.titleMedium)
-                Text("No sítio: $locked/${n * n}", style = MaterialTheme.typography.titleMedium)
-            }
-
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f),
-                contentAlignment = Alignment.Center,
-            ) {
-                val image = game.image
-                when {
-                    image != null && showOriginal -> Image(
-                        bitmap = image,
-                        contentDescription = "Imagem original",
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                    image != null -> PuzzleCanvas(vm, game, image)
-                    game.loadError -> Text("Não foi possível abrir esta foto.")
-                    else -> CircularProgressIndicator()
+                    Column(Modifier.weight(1f)) {
+                        val locked = game.cells.indices.count { game.cells[it] == it }
+                        Text(
+                            (game.levelIndex?.let { "Nível ${it + 1}" } ?: "Foto escolhida") + " · ${n}×$n",
+                            style = MaterialTheme.typography.titleMedium,
+                            maxLines = 1,
+                        )
+                        Text(
+                            "Jogadas: ${game.moves}   No sítio: $locked/${n * n}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                        )
+                    }
+                    IconButton(onClick = { showOriginal = !showOriginal }, enabled = game.image != null) {
+                        Icon(
+                            Icons.Filled.Search,
+                            contentDescription = if (showOriginal) "Voltar ao puzzle" else "Ver original",
+                            tint = if (showOriginal) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                        )
+                    }
+                    IconButton(onClick = vm::restart, enabled = game.image != null) {
+                        Icon(Icons.Filled.Refresh, contentDescription = "Baralhar")
+                    }
                 }
-            }
 
-            Text(
-                "Toca numa peça e depois no sítio para onde a queres trocar. " +
-                    "Peças que encaixam ficam unidas e movem-se juntas; " +
-                    "as que estão no sítio certo ficam bloqueadas.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                FilledTonalButton(
-                    onClick = { showOriginal = !showOriginal },
-                    enabled = game.image != null,
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(boardHeight)
+                        .padding(horizontal = 4.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Filled.Search, contentDescription = null)
-                    Text(if (showOriginal) "  Voltar ao puzzle" else "  Ver original")
-                }
-                OutlinedButton(onClick = vm::restart, enabled = game.image != null) {
-                    Icon(Icons.Filled.Refresh, contentDescription = null)
-                    Text("  Baralhar")
+                    val image = game.image
+                    when {
+                        image != null && showOriginal -> Image(
+                            bitmap = image,
+                            contentDescription = "Imagem original",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clickable { showOriginal = false },
+                        )
+                        image != null -> PuzzleCanvas(vm, game, image)
+                        game.loadError -> Text("Não foi possível abrir esta foto.")
+                        else -> CircularProgressIndicator()
+                    }
                 }
             }
         }
@@ -191,9 +182,8 @@ private fun PuzzleCanvas(vm: PuzzleViewModel, game: GameUi, image: ImageBitmap) 
             .fillMaxSize()
             .pointerInput(n) {
                 detectTapGestures { offset ->
-                    val cellSize = size.width.toFloat() / n
-                    val col = (offset.x / cellSize).toInt().coerceIn(0, n - 1)
-                    val row = (offset.y / cellSize).toInt().coerceIn(0, n - 1)
+                    val col = (offset.x * n / size.width).toInt().coerceIn(0, n - 1)
+                    val row = (offset.y * n / size.height).toInt().coerceIn(0, n - 1)
                     when (vm.tap(row * n + col)) {
                         TapResult.Rejected -> haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         TapResult.Solved -> haptics.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -203,9 +193,22 @@ private fun PuzzleCanvas(vm: PuzzleViewModel, game: GameUi, image: ImageBitmap) 
             }
     ) {
         drawRect(Color.Black)
-        val cellSize = size.width / n
-        val tile = image.width / n
+        val cellW = size.width / n
+        val cellH = size.height / n
         val half = gapPx / 2
+        // Recorte central da foto com o mesmo formato do tabuleiro (como ContentScale.Crop).
+        val boardAspect = size.width / size.height
+        val cropW: Int
+        val cropH: Int
+        if (image.width.toFloat() / image.height > boardAspect) {
+            cropH = image.height
+            cropW = (image.height * boardAspect).toInt().coerceAtMost(image.width)
+        } else {
+            cropW = image.width
+            cropH = (image.width / boardAspect).toInt().coerceAtMost(image.height)
+        }
+        val cropX = (image.width - cropW) / 2
+        val cropY = (image.height - cropH) / 2
 
         for (cell in 0 until n * n) {
             val piece = game.cells[cell]
@@ -215,18 +218,22 @@ private fun PuzzleCanvas(vm: PuzzleViewModel, game: GameUi, image: ImageBitmap) 
             val top = if (board.joinedUp(cell)) 0f else half
             val right = if (board.joinedRight(cell)) 0f else half
             val bottom = if (board.joinedDown(cell)) 0f else half
-            val x = pos.x * cellSize
-            val y = pos.y * cellSize
+            val x = pos.x * cellW
+            val y = pos.y * cellH
+            val srcX0 = cropX + (piece % n) * cropW / n
+            val srcY0 = cropY + (piece / n) * cropH / n
+            val srcX1 = cropX + (piece % n + 1) * cropW / n
+            val srcY1 = cropY + (piece / n + 1) * cropH / n
             val dstX = (x + left).roundToInt()
             val dstY = (y + top).roundToInt()
             drawImage(
                 image = image,
-                srcOffset = IntOffset((piece % n) * tile, (piece / n) * tile),
-                srcSize = IntSize(tile, tile),
+                srcOffset = IntOffset(srcX0, srcY0),
+                srcSize = IntSize(srcX1 - srcX0, srcY1 - srcY0),
                 dstOffset = IntOffset(dstX, dstY),
                 dstSize = IntSize(
-                    (x + cellSize - right).roundToInt() - dstX,
-                    (y + cellSize - bottom).roundToInt() - dstY,
+                    (x + cellW - right).roundToInt() - dstX,
+                    (y + cellH - bottom).roundToInt() - dstY,
                 ),
             )
         }
@@ -234,7 +241,7 @@ private fun PuzzleCanvas(vm: PuzzleViewModel, game: GameUi, image: ImageBitmap) 
         if (game.selected.isNotEmpty()) {
             for (cell in game.selected) {
                 val pos = positions[game.cells[cell]].value
-                drawSelection(cell, pos, cellSize, n, game.selected, highlight)
+                drawSelection(cell, pos, Size(cellW, cellH), n, game.selected, highlight)
             }
         }
     }
@@ -244,18 +251,18 @@ private fun PuzzleCanvas(vm: PuzzleViewModel, game: GameUi, image: ImageBitmap) 
 private fun DrawScope.drawSelection(
     cell: Int,
     pos: Offset,
-    cellSize: Float,
+    cellSize: Size,
     n: Int,
     selected: Set<Int>,
     color: Color,
 ) {
-    val topLeft = Offset(pos.x * cellSize, pos.y * cellSize)
-    drawRect(Color.White.copy(alpha = 0.3f), topLeft, Size(cellSize, cellSize))
+    val topLeft = Offset(pos.x * cellSize.width, pos.y * cellSize.height)
+    drawRect(Color.White.copy(alpha = 0.3f), topLeft, cellSize)
     val stroke = 3.dp.toPx()
     val x0 = topLeft.x
     val y0 = topLeft.y
-    val x1 = x0 + cellSize
-    val y1 = y0 + cellSize
+    val x1 = x0 + cellSize.width
+    val y1 = y0 + cellSize.height
     val col = cell % n
     if (col == 0 || (cell - 1) !in selected) drawLine(color, Offset(x0, y0), Offset(x0, y1), stroke)
     if (col == n - 1 || (cell + 1) !in selected) drawLine(color, Offset(x1, y0), Offset(x1, y1), stroke)

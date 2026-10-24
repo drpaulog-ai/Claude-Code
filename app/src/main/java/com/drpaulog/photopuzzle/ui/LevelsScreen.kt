@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -71,6 +72,13 @@ fun LevelsScreen(vm: PuzzleViewModel) {
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { vm.refreshPhotos() }
+    // Depois de dar acesso a mais fotos (Android 14+), volta à escolha dos níveis.
+    val morePhotosLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        vm.refreshPhotos()
+        vm.editLevelPhotos()
+    }
     val pickLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
     ) { uri -> if (uri != null) vm.startCustom(uri) }
@@ -82,7 +90,19 @@ fun LevelsScreen(vm: PuzzleViewModel) {
         PackageManager.PERMISSION_GRANTED
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Puzzle de Fotos") }) },
+        topBar = {
+            TopAppBar(
+                title = { Text("Puzzle de Fotos") },
+                actions = {
+                    if (vm.hasAccess) {
+                        TextButton(onClick = vm::editLevelPhotos) {
+                            Icon(Icons.Filled.Edit, contentDescription = null)
+                            Text("  Fotos")
+                        }
+                    }
+                },
+            )
+        },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = {
@@ -118,9 +138,9 @@ fun LevelsScreen(vm: PuzzleViewModel) {
                 !vm.hasAccess -> AccessRequest {
                     permissionLauncher.launch(PhotoRepository.requiredPermissions())
                 }
-                vm.photos.isEmpty() -> CenteredMessage(
-                    "Não foram encontradas fotos neste dispositivo.\n" +
-                        "Usa \"Escolher foto\" para jogar com uma imagem."
+                vm.photosLoaded && vm.photos.isEmpty() -> CenteredMessage(
+                    "Não há fotos escolhidas para níveis.\n" +
+                        "Toca em \"Fotos\" para as escolher, ou usa \"Escolher foto\" para jogar com uma imagem."
                 )
                 else -> {
                     val done = vm.photos.count { it.id in vm.completed }
@@ -131,9 +151,9 @@ fun LevelsScreen(vm: PuzzleViewModel) {
                     )
                     if (partialAccess) {
                         TextButton(
-                            onClick = { permissionLauncher.launch(PhotoRepository.requiredPermissions()) },
+                            onClick = { morePhotosLauncher.launch(PhotoRepository.requiredPermissions()) },
                             modifier = Modifier.padding(horizontal = 8.dp),
-                        ) { Text("Escolher mais fotos para níveis") }
+                        ) { Text("Dar acesso a mais fotos") }
                     }
                     LevelGrid(vm)
                 }

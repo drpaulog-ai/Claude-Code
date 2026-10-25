@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.CapaDesfocada" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/sala</item>
+        <item name="android:statusBarColor">@color/sala</item>
+        <item name="android:navigationBarColor">@color/sala</item>
+    </style>
+    <color name="sala">#0C0B10</color>
+</resources>

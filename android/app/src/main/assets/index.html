@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Capa Desfocada</title>
+<style>
+/* Sala de cinema: ecrã escuro, cartaz iluminado no centro, bilhetes como botões. */
+@font-face{font-family:'Anton';src:url('fonts/Anton-Regular.ttf') format('truetype');font-display:swap}
+:root{
+  color-scheme:dark;
+  --bg:#0c0b10; --panel:#16141c; --line:#2a2733; --ink:#f1ede4; --muted:#9a94a6;
+  --gold:#f2c14e; --ok:#3ecf8e; --bad:#ff5d5d;
+  --display:'Anton',Impact,'Arial Narrow',sans-serif;
+  --body:system-ui,-apple-system,'Roboto','Segoe UI',sans-serif;
+  --mono:ui-monospace,'Roboto Mono',Menlo,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:radial-gradient(ellipse at 50% -10%,#2a2233 0%,var(--bg) 60%) fixed,var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;min-height:100vh;-webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit}
+.wrap{max-width:1000px;margin:0 auto;padding-top:calc(16px + env(safe-area-inset-top,0px));padding-bottom:calc(40px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:16px}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(30px,8vw,52px);line-height:1;margin:0;letter-spacing:.02em;text-transform:uppercase}
+h1 span{color:var(--gold)}
+.stats{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.stats b{color:var(--ink);font-size:18px;display:block;font-variant-numeric:tabular-nums}
+.lives{color:var(--bad);letter-spacing:.1em}
+.helps{display:flex;flex-wrap:wrap;gap:8px}
+.help{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);padding:9px 14px;border-radius:999px;cursor:pointer;font-size:14px}
+.help .c{font-family:var(--mono);background:var(--gold);color:#1a1405;border-radius:999px;min-width:22px;text-align:center;font-weight:700;font-size:12px;padding:1px 6px}
+.help:disabled{opacity:.4}
+.progress{font-size:13px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.progress i{font-style:normal;color:var(--gold)}
+.stage{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:24px;align-items:start}
+.poster{position:relative;aspect-ratio:2/3;width:100%;border-radius:6px;overflow:hidden;background:var(--panel);box-shadow:0 0 0 1px var(--line),0 30px 80px -20px rgba(242,193,78,.25)}
+.poster img{width:100%;height:100%;object-fit:cover;display:block}
+.veil{position:absolute;left:0;right:0;backdrop-filter:blur(18px) saturate(.8);-webkit-backdrop-filter:blur(18px) saturate(.8);background:rgba(12,11,16,.2);transition:opacity .5s}
+.veil.top{top:0;height:25%}
+.veil.bot{bottom:0;height:35%}
+.poster.reveal .veil{opacity:0}
+.badge{position:absolute;top:8px;left:8px;font-family:var(--mono);font-size:11px;background:rgba(0,0,0,.65);padding:3px 8px;border-radius:4px;color:var(--muted)}
+.ask{display:grid;gap:12px;min-width:0}
+.ask h2{font-family:var(--display);font-weight:400;font-size:clamp(22px,6vw,32px);margin:0;text-transform:uppercase;letter-spacing:.02em}
+.opts{display:grid;gap:10px}
+.opt{text-align:left;background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--line);padding:14px 16px;border-radius:6px;cursor:pointer;font-size:17px;font-weight:500;display:flex;gap:12px;align-items:baseline;transition:border-color .15s}
+.opt .k{font-family:var(--mono);color:var(--muted);font-size:13px}
+.opt:active:not(:disabled){border-color:var(--gold)}
+.opt.gone{opacity:.18;text-decoration:line-through}
+.opt.ok{border-color:var(--ok);background:rgba(62,207,142,.12)}
+.opt.bad{border-color:var(--bad);background:rgba(255,93,93,.12)}
+.opt.hint{border-color:var(--gold);box-shadow:0 0 24px rgba(242,193,78,.5)}
+.feedback{min-height:52px;display:grid;gap:4px}
+.feedback .t{font-family:var(--display);font-size:24px;text-transform:uppercase}
+.feedback .t.ok{color:var(--ok)}.feedback .t.bad{color:var(--bad)}
+.feedback .d{color:var(--muted);font-size:14px}
+.primary{justify-self:start;background:var(--gold);color:#1a1405;border:0;padding:13px 24px;border-radius:6px;font-weight:700;cursor:pointer;font-size:16px}
+.primary:disabled{opacity:.5}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.rank{display:grid;gap:8px}
+.ritem{display:grid;grid-template-columns:26px 50px minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
+.ritem .pos{font-family:var(--display);font-size:22px;color:var(--gold);text-align:center}
+.ritem img{width:50px;height:75px;object-fit:cover;border-radius:3px;background:#222}
+.ritem .nm{font-weight:700;min-width:0;font-size:15px}
+.ritem .val{font-family:var(--mono);font-size:13px;color:var(--muted);font-weight:400}
+.ritem .mv{display:flex;flex-direction:column;gap:6px}
+.ritem .mv button{background:transparent;border:1px solid var(--line);border-radius:4px;width:40px;height:34px;cursor:pointer}
+.ritem.ok{border-color:var(--ok)}.ritem.bad{border-color:var(--bad)}
+.crit{justify-self:start;font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;background:var(--gold);color:#1a1405;padding:3px 8px;border-radius:3px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:20px;display:grid;gap:14px;max-width:640px}
+.card h2{font-family:var(--display);font-weight:400;font-size:28px;margin:0;text-transform:uppercase}
+.card p{margin:0;color:var(--muted)}
+.card ul{margin:0;padding-left:1.2em;color:var(--muted);display:grid;gap:6px}
+.card b{color:var(--ink)}
+details{color:var(--muted);font-size:14px}
+details summary{cursor:pointer;color:var(--ink)}
+.field{display:grid;gap:6px;margin-top:10px}
+.field input{background:var(--bg);border:1px solid var(--line);color:var(--ink);padding:12px;border-radius:6px;font-family:var(--mono);font-size:14px;width:100%;-webkit-user-select:text;user-select:text}
+.err{color:var(--bad);font-size:14px}
+a{color:var(--gold)}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(160%);background:var(--gold);color:#1a1405;padding:12px 20px;border-radius:8px;font-weight:700;transition:transform .35s;z-index:5;max-width:calc(100% - 32px);text-align:center}
+.toast.on{transform:translateX(-50%) translateY(0)}
+footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+.loading{color:var(--muted);font-family:var(--mono);font-size:14px}
+@media (max-width:700px){.stage{grid-template-columns:1fr}.poster{max-width:260px;margin:0 auto}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Capa <span>Desfocada</span></h1>
+    <div class="stats" id="stats" hidden>
+      <div>Pontos<b id="sPts">0</b></div>
+      <div>Certas<b id="sOk">0</b></div>
+      <div>Vidas<b class="lives" id="sLives">♥♥♥</b></div>
+      <div>Recorde<b id="sBest">0</b></div>
+    </div>
+  </header>
+  <div id="bar" hidden style="display:grid;gap:10px">
+    <div class="helps">
+      <button class="help" id="hFifty" type="button">50/50 <span class="c" id="cFifty">0</span></button>
+      <button class="help" id="hEraser" type="button">Borracha <span class="c" id="cEraser">0</span></button>
+      <button class="help" id="hBull" type="button">Na mouche <span class="c" id="cBull">0</span></button>
+    </div>
+    <div class="progress"><span>Próxima ajuda: <i id="pHelp">5</i> certas</span><span>Desafio de ranking: <i id="pRank">10</i> certas</span></div>
+  </div>
+  <main id="main"></main>
+  <footer>Dados da <a href="https://www.wikidata.org/">Wikidata</a> (CC0) e cartazes da <a href="https://en.wikipedia.org/">Wikipédia</a>. Com chave, também do <a href="https://www.themoviedb.org/">TMDB</a>, que não apoia nem certifica este jogo.</footer>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="sources.js"></script>
+<script>
+const LIVES=3, HELP_EVERY=5, RANK_EVERY=10, CACHE_DAYS=7;
+const money=v=>v>=1e9?(v/1e9).toFixed(2).replace('.',',')+' mil M$':Math.round(v/1e6)+' M$';
+const dateFmt=d=>d.split('-').reverse().join('/');
+const CRITERIA=[
+ {k:'year',label:'Data de estreia',how:'do mais antigo para o mais recente',dir:1,get:m=>Date.parse(m.date),fmt:m=>dateFmt(m.date)},
+ {k:'langs',label:'Fama mundial',how:'do que tem artigo em mais Wikipédias para o que tem em menos',dir:-1,get:m=>m.sl,fmt:m=>m.sl+' línguas'},
+ {k:'box',label:'Bilheteira mundial',how:'da maior para a menor',dir:-1,stat:true,get:m=>m.box,fmt:m=>money(m.box)},
+ {k:'cost',label:'Orçamento',how:'do maior para o menor',dir:-1,stat:true,get:m=>m.cost,fmt:m=>money(m.cost)},
+ {k:'dur',label:'Duração',how:'do mais longo para o mais curto',dir:-1,stat:true,get:m=>m.dur,fmt:m=>Math.round(m.dur)+' min'},
+ {k:'oscars',label:'Óscares ganhos',how:'do que ganhou mais para o que ganhou menos',dir:-1,get:m=>m.oscars,fmt:m=>m.oscars+(m.oscars===1?' óscar':' óscares')}
+];
+
+const $=id=>document.getElementById(id);
+const rnd=n=>Math.floor(Math.random()*n);
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]}return a};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+let toastT;function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2600)}
+const loadImg=src=>new Promise(res=>{const i=new Image();i.onload=()=>res(true);i.onerror=()=>res(false);i.src=src});
+
+const SRC=SOURCES.make(fetch.bind(window));
+let KEY=store.get('tmdbKey','');
+const S={pts:0,ok:0,lives:LIVES,best:+store.get('best',0),helps:{fifty:0,eraser:0,bull:0},films:[],used:new Set(),q:null,next:null,answered:false,pendingRank:false,oscars:null,inRank:false};
+
+/* ---------- dados ---------- */
+async function loadFilms(){
+  try{const c=JSON.parse(store.get('films_v1','null'));if(c&&Date.now()-c.t<CACHE_DAYS*864e5&&c.films.length>100)return c.films}catch(e){}
+  const films=await SRC.films();
+  store.set('films_v1',JSON.stringify({t:Date.now(),films}));
+  return films;
+}
+async function getOscars(){
+  if(S.oscars)return S.oscars;
+  try{const c=JSON.parse(store.get('oscars_v1','null'));if(c&&Date.now()-c.t<CACHE_DAYS*864e5){S.oscars=c.o;return S.oscars}}catch(e){}
+  S.oscars=await SRC.oscars();store.set('oscars_v1',JSON.stringify({t:Date.now(),o:S.oscars}));return S.oscars;
+}
+async function posterFor(m){
+  if(m.poster!==undefined)return m.poster;
+  let p=null;
+  if(KEY&&m.imdb){try{p=await SRC.tmdbPoster(KEY,m.imdb)}catch(e){if(e.message==='chave')toast('O TMDB recusou a chave. Uso só a Wikipédia.')}}
+  if(!p){const r=await SRC.posters([m.art]);if(r[m.art])p={src:r[m.art],textless:false}}
+  if(p&&!(await loadImg(p.src)))p=null;
+  m.poster=p;return p;
+}
+async function thumbs(list){
+  const need=list.filter(m=>m.thumb===undefined);
+  if(need.length){const r=await SRC.posters(need.map(m=>m.art),200);for(const m of need)m.thumb=r[m.art]||null}
+  return list.filter(m=>m.thumb);
+}
+const yearOf=m=>+m.date.slice(0,4);
+async function buildQuestion(){
+  for(let tries=0;tries<8;tries++){
+    let free=S.films.filter(m=>!S.used.has(m.id));
+    if(free.length<4){S.used.clear();free=S.films}
+    const m=free[rnd(free.length)];S.used.add(m.id);
+    const p=await posterFor(m);if(!p)continue;
+    // respostas erradas parecidas: filmes da mesma época
+    const titles=new Set([m.title.toLowerCase()]);
+    const near=shuffle(S.films.filter(x=>x.id!==m.id&&Math.abs(yearOf(x)-yearOf(m))<=8));
+    const pool=near.concat(shuffle(S.films));
+    const wrong=[];for(const c of pool){const t=c.title.toLowerCase();if(c.id!==m.id&&!titles.has(t)){titles.add(t);wrong.push(c)}if(wrong.length===3)break}
+    return {m,src:p.src,textless:p.textless,opts:shuffle([m,...wrong]).map(x=>({id:x.id,title:x.title,gone:false}))};
+  }
+  throw new Error('sem cartazes');
+}
+
+/* ---------- ecrãs ---------- */
+function setupScreen(err=''){
+  $('stats').hidden=true;$('bar').hidden=true;
+  $('main').innerHTML=`<div class="card">
+    <h2>Como se joga</h2>
+    <ul>
+      <li>Aparece o cartaz de um filme com o título desfocado. Escolhe o nome certo entre 4 hipóteses.</li>
+      <li>Tens <b>3 vidas</b>. Cada resposta errada tira uma.</li>
+      <li>A cada <b>5 certas</b> ganhas uma ajuda: <b>50/50</b>, <b>Borracha</b> ou, mais rara, <b>Na mouche</b>.</li>
+      <li>A cada <b>10 certas</b> vem um desafio: ordenar 5 filmes por data, bilheteira, óscares, orçamento, duração ou fama.</li>
+    </ul>
+    <p>Os filmes vêm da Wikidata e os cartazes da Wikipédia, sem precisares de conta. Precisas de internet.</p>
+    ${err?`<p class="err">${esc(err)}</p>`:''}
+    <button class="primary" id="go" type="button">Jogar</button>
+    <details><summary>Cartazes sem texto do TMDB (opcional)</summary>
+      <p style="margin-top:8px">Com uma chave gratuita do TMDB, o jogo usa cartazes sem título sempre que existem. Cria a chave em themoviedb.org → Definições → API. Fica guardada só neste telemóvel.</p>
+      <div class="field"><label for="key">Chave da API do TMDB</label><input id="key" autocomplete="off" spellcheck="false" placeholder="deixa vazio para não usar" value="${esc(KEY)}"></div>
+    </details>
+  </div>`;
+  $('go').onclick=()=>{KEY=$('key').value.trim();store.set('tmdbKey',KEY);start()};
+}
+async function start(){
+  Object.assign(S,{pts:0,ok:0,lives:LIVES,helps:{fifty:0,eraser:0,bull:0},used:new Set(),next:null,pendingRank:false,inRank:false});
+  $('main').innerHTML='<p class="loading">A carregar filmes da Wikidata…</p>';
+  try{if(!S.films.length)S.films=await loadFilms();S.q=await buildQuestion()}
+  catch(e){return setupScreen('Não consegui carregar os filmes. Verifica a ligação à internet e tenta outra vez.')}
+  $('stats').hidden=false;$('bar').hidden=false;showQuestion();
+}
+function updateBar(){
+  $('sPts').textContent=S.pts;$('sOk').textContent=S.ok;$('sLives').textContent='♥'.repeat(Math.max(0,S.lives))+'♡'.repeat(LIVES-Math.max(0,S.lives));$('sBest').textContent=S.best;
+  $('cFifty').textContent=S.helps.fifty;$('cEraser').textContent=S.helps.eraser;$('cBull').textContent=S.helps.bull;
+  const q=S.q,live=q&&!S.answered&&!S.inRank;const left=q?q.opts.filter(o=>!o.gone).length:0;
+  $('hFifty').disabled=!(live&&S.helps.fifty&&left>2);$('hEraser').disabled=!(live&&S.helps.eraser&&left>2);$('hBull').disabled=!(live&&S.helps.bull);
+  $('pHelp').textContent=HELP_EVERY-(S.ok%HELP_EVERY);$('pRank').textContent=RANK_EVERY-(S.ok%RANK_EVERY);
+}
+function showQuestion(){
+  S.answered=false;S.inRank=false;const q=S.q;
+  $('main').innerHTML=`<div class="stage">
+    <div class="poster" id="poster"><img src="${esc(q.src)}" alt="Cartaz do filme a adivinhar">${q.textless?'<span class="badge">cartaz sem texto</span>':'<div class="veil top"></div><div class="veil bot"></div>'}</div>
+    <div class="ask"><h2>Que filme é este?</h2><div class="opts" id="opts"></div><div class="feedback" id="fb"></div><button class="primary" id="nextB" type="button" hidden>Seguinte</button></div>
+  </div>`;
+  renderOpts();updateBar();window.scrollTo(0,0);
+  S.next=buildQuestion().catch(()=>null);
+}
+function renderOpts(){
+  const q=S.q;$('opts').innerHTML='';
+  q.opts.forEach((o,i)=>{const b=document.createElement('button');b.type='button';b.className='opt'+(o.gone?' gone':'')+(o.hint?' hint':'');b.innerHTML=`<span class="k">${'ABCD'[i]}</span><span>${esc(o.title)}</span>`;b.disabled=o.gone||S.answered;b.addEventListener('click',()=>answer(o.id));o.el=b;$('opts').appendChild(b)});
+}
+function answer(id){
+  if(S.answered)return;S.answered=true;const q=S.q,good=id===q.m.id;
+  q.opts.forEach(o=>{o.el.disabled=true;if(o.id===q.m.id)o.el.classList.add('ok');else if(o.id===id)o.el.classList.add('bad')});
+  $('poster').classList.add('reveal');
+  const y=yearOf(q.m),orig=q.m.en!==q.m.title?' · '+esc(q.m.en):'';
+  if(good){S.ok++;S.pts+=10;$('fb').innerHTML=`<div class="t ok">Certo!</div><div class="d">${esc(q.m.title)} (${y})${orig}</div>`;
+    if(S.ok%HELP_EVERY===0)grantHelp();
+    if(S.ok%RANK_EVERY===0)S.pendingRank=true}
+  else{S.lives--;$('fb').innerHTML=`<div class="t bad">Errado</div><div class="d">Era <b>${esc(q.m.title)}</b> (${y})${orig}.</div>`;if(navigator.vibrate)navigator.vibrate(120)}
+  if(S.pts>S.best){S.best=S.pts;store.set('best',S.best)}
+  updateBar();
+  const nb=$('nextB');nb.hidden=false;nb.textContent=S.lives<=0?'Ver resultado':S.pendingRank?'Desafio de ranking!':'Seguinte';
+  nb.onclick=next;nb.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+function grantHelp(){const r=Math.random();const k=r<.45?'fifty':r<.9?'eraser':'bull';S.helps[k]++;toast('Ganhaste uma ajuda: '+{fifty:'50/50',eraser:'Borracha',bull:'Na mouche'}[k]+'!')}
+async function next(){
+  if(S.lives<=0)return gameOver();
+  if(S.pendingRank){S.pendingRank=false;return rankChallenge()}
+  $('nextB').disabled=true;$('nextB').textContent='A carregar…';
+  S.q=(await S.next)||await buildQuestion().catch(()=>null);
+  if(!S.q){$('fb').innerHTML='<div class="t bad">Sem ligação</div><div class="d">Não consegui ir buscar o próximo filme.</div>';$('nextB').disabled=false;$('nextB').textContent='Tentar outra vez';S.next=buildQuestion().catch(()=>null);return}
+  showQuestion();
+}
+function useHelp(k){
+  const q=S.q;if(S.answered||!S.helps[k])return;
+  const wrong=shuffle(q.opts.filter(o=>!o.gone&&o.id!==q.m.id));
+  if(k==='fifty')wrong.slice(0,wrong.length-1).slice(0,2).forEach(o=>o.gone=true);
+  if(k==='eraser')wrong[0].gone=true;
+  if(k==='bull')q.opts.find(o=>o.id===q.m.id).hint=true;
+  S.helps[k]--;renderOpts();updateBar();
+  if(k==='bull')setTimeout(()=>answer(q.m.id),900);
+}
+$('hFifty').onclick=()=>useHelp('fifty');$('hEraser').onclick=()=>useHelp('eraser');$('hBull').onclick=()=>useHelp('bull');
+
+/* ---------- desafio de ranking ---------- */
+function distinct5(list,get){const seen=new Set(),out=[];for(const m of list){const v=get(m);if(v==null||Number.isNaN(v)||seen.has(v))continue;seen.add(v);out.push(m);if(out.length===5)break}return out}
+async function pickRanking(){
+  const famous=S.films.filter(m=>m.sl>=80);
+  for(const c of shuffle(CRITERIA)){
+    try{
+      let films=[];
+      if(c.k==='oscars'){
+        const o=await getOscars();
+        const groups={};for(const m of famous){const n=o[m.id]||0;(groups[n]=groups[n]||[]).push(m)}
+        const counts=shuffle(Object.keys(groups)).slice(0,5);if(counts.length<5)continue;
+        for(const n of counts){const g=await thumbs(shuffle(groups[n]).slice(0,4));if(g[0])films.push(Object.assign(g[0],{oscars:+n}))}
+      }else if(c.stat){
+        const cand=shuffle(famous).slice(0,30);
+        const st=await SRC.stats(cand.map(m=>m.id));
+        for(const m of cand)Object.assign(m,st[m.id]||{});
+        films=distinct5(await thumbs(cand.filter(m=>c.get(m)>0).slice(0,12)),c.get);
+      }else{
+        films=distinct5(await thumbs(shuffle(famous).slice(0,12)),c.get);
+      }
+      if(films.length===5)return {c,films};
+    }catch(e){}
+  }
+  return null;
+}
+async function rankChallenge(){
+  S.inRank=true;updateBar();
+  $('main').innerHTML='<p class="loading">A preparar o desafio de ranking…</p>';
+  const R=await pickRanking();
+  if(!R){toast('Não consegui preparar o desafio. Seguimos!');S.q=(await S.next)||await buildQuestion();return showQuestion()}
+  let order=shuffle(R.films);
+  const correct=R.films.slice().sort((a,b)=>(R.c.get(a)-R.c.get(b))*R.c.dir);
+  $('main').innerHTML=`<div class="ask" style="max-width:680px">
+    <span class="crit">${R.c.label}</span>
+    <h2>Ordena ${R.c.how}</h2>
+    <p style="margin:0;color:var(--muted)">Usa as setas. O primeiro da lista é o nº 1.</p>
+    <div class="rank" id="rank"></div><div class="feedback" id="fb"></div>
+    <button class="primary" id="go" type="button">Confirmar ordem</button></div>`;
+  window.scrollTo(0,0);
+  let done=false;
+  function draw(){
+    const box=$('rank');box.innerHTML='';
+    order.forEach((m,i)=>{const d=document.createElement('div');d.className='ritem';
+      if(done)d.classList.add(correct[i].id===m.id?'ok':'bad');
+      const sub=done?R.c.fmt(m):(R.c.k!=='year'?yearOf(m):'');
+      d.innerHTML=`<span class="pos">${i+1}</span><img src="${esc(m.thumb)}" alt=""><div class="nm">${esc(m.title)}<div class="val">${sub}</div></div>
+        <div class="mv">${done?'':`<button type="button" aria-label="Subir" data-u="${i}">▲</button><button type="button" aria-label="Descer" data-d="${i}">▼</button>`}</div>`;
+      box.appendChild(d)});
+    box.querySelectorAll('[data-u]').forEach(b=>b.onclick=()=>{const i=+b.dataset.u;if(i>0){[order[i-1],order[i]]=[order[i],order[i-1]];draw()}});
+    box.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{const i=+b.dataset.d;if(i<4){[order[i+1],order[i]]=[order[i],order[i+1]];draw()}});
+  }
+  draw();
+  $('go').onclick=async()=>{
+    if(!done){done=true;const hits=order.filter((m,i)=>correct[i].id===m.id).length;let msg;
+      if(hits===5){S.pts+=50;grantHelp();msg='<div class="t ok">Perfeito! +50 pontos e uma ajuda extra</div>'}
+      else if(hits>=3){S.pts+=hits*10;msg=`<div class="t ok">${hits} de 5 no sítio certo. +${hits*10} pontos</div>`}
+      else{S.lives--;msg=`<div class="t bad">Só ${hits} de 5 no sítio certo. Perdes uma vida</div>`}
+      order=correct;draw();$('fb').innerHTML=msg+'<div class="d">Esta é a ordem certa, com os valores da Wikidata.</div>';
+      if(S.pts>S.best){S.best=S.pts;store.set('best',S.best)}updateBar();
+      $('go').textContent=S.lives<=0?'Ver resultado':'Continuar';return}
+    if(S.lives<=0)return gameOver();
+    $('go').disabled=true;$('go').textContent='A carregar…';
+    S.q=(await S.next)||await buildQuestion();showQuestion();
+  };
+}
+function gameOver(){
+  S.inRank=true;updateBar();
+  $('main').innerHTML=`<div class="card"><h2>Fim da sessão</h2>
+    <p>Acertaste <b>${S.ok}</b> filmes e fizeste <b>${S.pts}</b> pontos. O teu recorde é <b>${S.best}</b>.</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="primary" id="again" type="button">Jogar outra vez</button><button class="help" id="menu" type="button">Menu</button></div></div>`;
+  $('again').onclick=start;$('menu').onclick=()=>setupScreen();
+}
+setupScreen();
+</script>
+</body>
+</html>

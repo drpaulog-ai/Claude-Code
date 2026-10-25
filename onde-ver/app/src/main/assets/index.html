@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Onde Ver</title>
+<style>
+/* Um guia de TV de bolso: barra de pesquisa fixa, cartões de resultados, ficha com serviços por país. */
+:root{
+  color-scheme:dark;
+  --bg:#0f1216; --panel:#171b21; --panel2:#1e232b; --line:#2a303a; --ink:#eef1f5; --muted:#97a0ad;
+  --accent:#ff7a59; --ok:#3cc8b4; --warn:#f2c14e;
+  --body:system-ui,-apple-system,'Roboto','Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;min-height:100vh}
+button,input,select{font:inherit;color:inherit}
+a{color:var(--accent)}
+.top{position:sticky;top:0;z-index:3;background:var(--bg);padding-top:calc(12px + env(safe-area-inset-top,0px));padding-bottom:10px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--line);display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand h1{margin:0;font-size:22px;letter-spacing:-.01em}
+.brand h1 span{color:var(--accent)}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer;white-space:nowrap}
+.searchrow{display:flex;gap:8px}
+.searchrow input{flex:1;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:17px}
+.searchrow button{background:var(--accent);color:#1b0d07;border:0;border-radius:10px;padding:0 16px;font-weight:700}
+main{max-width:760px;margin:0 auto;padding-block:16px calc(40px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:14px}
+.muted{color:var(--muted)}
+.note{font-size:13px;color:var(--muted)}
+.res{display:grid;grid-template-columns:62px minmax(0,1fr);gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;cursor:pointer;text-align:left;width:100%}
+.res img,.res .ph{width:62px;height:93px;object-fit:cover;border-radius:6px;background:var(--panel2)}
+.res .t{font-weight:700;font-size:16px}
+.res .o{font-size:13px;color:var(--muted)}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.tag{font-size:11px;letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--muted)}
+.tag.k{border-color:var(--accent);color:var(--accent)}
+.head{display:grid;grid-template-columns:110px minmax(0,1fr);gap:14px;align-items:start}
+.head img{width:110px;border-radius:8px;background:var(--panel2)}
+.head h2{margin:0;font-size:22px;line-height:1.2}
+.sec{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px}
+.sec h3{margin:0;font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.sec h3 b{color:var(--ink)}
+.grp{display:grid;gap:6px}
+.grp .gl{font-size:13px;color:var(--muted)}
+.provs{display:flex;flex-wrap:wrap;gap:8px}
+.prov{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:6px 10px 6px 6px;font-size:14px;text-decoration:none;color:var(--ink)}
+.prov img{width:28px;height:28px;border-radius:6px}
+.prov.mine{border-color:var(--ok)}
+.vpn{display:grid;gap:8px}
+.vrow{display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;align-items:start;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px}
+.vrow img{width:34px;height:34px;border-radius:7px}
+.vrow.mine{border-color:var(--ok)}
+.vrow .pn{font-weight:700}
+.vrow .cs{font-size:14px;color:var(--muted)}
+.ok{color:var(--ok)}
+.aka{display:flex;flex-wrap:wrap;gap:6px}
+.aka span{background:var(--panel2);border-radius:6px;padding:3px 8px;font-size:14px}
+.aka small{color:var(--muted);margin-left:4px}
+.back{justify-self:start;background:none;border:0;color:var(--accent);padding:0;font-size:15px;cursor:pointer}
+.field{display:grid;gap:6px}
+.field input,.field select{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:10px;width:100%}
+.svc{display:flex;flex-wrap:wrap;gap:8px}
+.svc label{display:flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:14px}
+.primary{background:var(--accent);color:#1b0d07;border:0;border-radius:10px;padding:12px 18px;font-weight:700;justify-self:start}
+.loading{color:var(--muted)}
+.err{color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.src{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="brand"><h1>Onde <span>Ver</span></h1><div style="display:flex;gap:8px"><button class="chip" id="cBtn" type="button"></button><button class="chip" id="sBtn" type="button" aria-label="Definições">⚙︎</button></div></div>
+  <form class="searchrow" id="sf"><input id="q" type="search" placeholder="Filme, série, novela, anime…" autocomplete="off" enterkeyhint="search" aria-label="Título a pesquisar"><button type="submit">Procurar</button></form>
+</div>
+<main id="main"></main>
+
+<script src="sources.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const SRC=SOURCES.make(fetch.bind(window));
+const norm=SOURCES.norm;
+const regionName=(()=>{let dn;try{dn=new Intl.DisplayNames(['pt-PT'],{type:'region'})}catch(e){}return cc=>{try{return dn?dn.of(cc):cc}catch(e){return cc}}})();
+const langName=(()=>{let dn;try{dn=new Intl.DisplayNames(['pt-PT'],{type:'language'})}catch(e){}return l=>{try{return dn&&l?dn.of(l):l}catch(e){return l}}})();
+const flag=cc=>cc&&/^[A-Z]{2}$/.test(cc)?String.fromCodePoint(...[...cc].map(c=>127397+c.charCodeAt(0))):'';
+
+const COUNTRIES=['PT','BR','ES','FR','IT','DE','GB','IE','NL','BE','CH','AT','LU','DK','SE','NO','FI','PL','CZ','HU','RO','GR','TR','US','CA','MX','AR','CL','CO','PE','JP','KR','IN','AU','NZ','ZA','AE','SG','HK','TW','PH','TH','ID','MY','IL','EG','NG','AO','MZ','CV'];
+const MY_OPTIONS=['Netflix','Amazon Prime Video','Disney Plus','Max','Apple TV Plus','SkyShowtime','Crunchyroll','Paramount Plus','RTP Play','Filmin','MUBI','TVCine','Opto','YouTube'];
+let KEY=store.get('tmdbKey','');
+let COUNTRY=store.get('country','')||((navigator.language||'').split('-')[1]||'PT').toUpperCase();
+if(!COUNTRIES.includes(COUNTRY))COUNTRY='PT';
+let MINE=JSON.parse(store.get('mine','[]'));
+const isMine=name=>MINE.some(m=>norm(name).startsWith(norm(m))||norm(m).startsWith(norm(name)));
+const T=()=>KEY?SRC.tmdb(KEY):null;
+
+function setCountryChip(){$('cBtn').textContent=flag(COUNTRY)+' '+COUNTRY}
+setCountryChip();
+$('cBtn').onclick=()=>settings();$('sBtn').onclick=()=>settings();
+
+/* ---------- navegação (o botão «voltar» do Android usa o histórico) ---------- */
+let RESULTS=[],LASTQ='';
+function go(view,push=true){if(push)history.pushState(view,'');render(view)}
+window.addEventListener('popstate',e=>render(e.state||{v:'home'}));
+function render(view){
+  if(view.v==='home')return home();
+  if(view.v==='results')return showResults();
+  if(view.v==='detail')return detail(RESULTS[view.i]);
+  if(view.v==='settings')return settingsView();
+}
+
+function home(){
+  $('main').innerHTML=`<div class="sec"><h3>Como funciona</h3>
+    <p style="margin:0">Escreve o nome de um filme, série, novela ou anime, no título português, no original ou noutra língua. A app procura em várias fontes e mostra onde podes ver em ${esc(regionName(COUNTRY))}, em que canal estreou e, se não estiver disponível cá, em que países está, para usares uma VPN.</p>
+    ${KEY?'':`<p class="err" style="margin:0">Para ver os serviços de streaming por país, junta uma chave gratuita do TMDB nas definições (⚙︎). Sem ela, a app mostra canais, anime e links da Wikidata.</p>`}
+  </div>`;
+}
+
+/* ---------- pesquisa ---------- */
+$('sf').addEventListener('submit',e=>{e.preventDefault();const q=$('q').value.trim();if(q){$('q').blur();search(q)}});
+async function search(q){
+  LASTQ=q;$('main').innerHTML='<p class="loading">A procurar «'+esc(q)+'» na TMDB, Wikidata, TVmaze e AniList…</p>';
+  const t=T();
+  const [tm,wd,tv,an]=await Promise.allSettled([t?t.search(q,'pt-PT'):Promise.resolve([]),SRC.wdSearch(q),SRC.tvmazeSearch(q),SRC.anilistSearch(q)]);
+  const val=r=>r.status==='fulfilled'?r.value:[];
+  if(tm.status==='rejected'&&tm.reason&&tm.reason.message==='chave'){KEY='';store.set('tmdbKey','')}
+  RESULTS=merge(val(tm),val(wd),val(tv),val(an));
+  RESULTS.failed=[['TMDB',tm],['Wikidata',wd],['TVmaze',tv],['AniList',an]].filter(([n,r])=>r.status==='rejected').map(([n])=>n);
+  go({v:'results'});
+}
+function merge(tm,wd,tv,an){
+  const list=[];
+  const find=p=>list.find(p);
+  for(const r of tm)list.push({...r,src:['TMDB'],titles:[]});
+  for(const w of wd){
+    const kind=w.tmdbTv?'tv':'movie',tid=+(w.tmdbTv||w.tmdbMovie);
+    const hit=(tid&&find(c=>c.tmdb===tid&&c.kind===kind))||(w.imdb&&find(c=>c.imdb===w.imdb));
+    if(hit){Object.assign(hit,{wikidata:w.wikidata,imdb:hit.imdb||w.imdb});hit.src.push('Wikidata');continue}
+    list.push({kind:tid?kind:'title',tmdb:tid||null,wikidata:w.wikidata,imdb:w.imdb,title:w.title,original:w.original,year:w.year,poster:null,src:['Wikidata']});
+  }
+  for(const s of tv){
+    const hit=(s.imdb&&find(c=>c.imdb===s.imdb))||find(c=>c.kind==='tv'&&norm(c.title)===norm(s.title)&&(!c.year||c.year===s.year));
+    if(hit){Object.assign(hit,{tvmaze:s.tvmaze,imdb:hit.imdb||s.imdb,poster:hit.poster||s.poster});hit.src.push('TVmaze');continue}
+    list.push({kind:'tv',tvmaze:s.tvmaze,imdb:s.imdb,title:s.title,year:s.year,poster:s.poster,channel:s.channel,src:['TVmaze']});
+  }
+  for(const a of an){
+    const names=a.titles.map(t=>norm(t.name));
+    const hit=find(c=>(c.anime||c.kind==='tv'||c.kind==='movie')&&(names.includes(norm(c.original))||names.includes(norm(c.title)))&&(!c.year||!a.year||Math.abs(+c.year-+a.year)<=1));
+    if(hit){Object.assign(hit,{anilist:a,anime:true});hit.src.push('AniList');continue}
+    list.push({kind:'anime',anime:true,anilist:a,title:a.title,original:a.original,year:a.year,poster:a.poster,src:['AniList']});
+  }
+  return list.slice(0,20);
+}
+const KIND={movie:'Filme',tv:'Série',title:'Título',anime:'Anime'};
+function showResults(){
+  if(!RESULTS.length){$('main').innerHTML=`<p>Não encontrei nada para «${esc(LASTQ)}». Experimenta o título original ou em inglês.</p>${RESULTS.failed&&RESULTS.failed.length?`<p class="note">Sem resposta de: ${RESULTS.failed.join(', ')}.</p>`:''}`;return}
+  $('main').innerHTML=`<p class="muted" style="margin:0">${RESULTS.length} resultados para «${esc(LASTQ)}»</p><div id="rl" style="display:grid;gap:10px"></div>${RESULTS.failed.length?`<p class="note">Sem resposta de: ${RESULTS.failed.join(', ')}.</p>`:''}`;
+  RESULTS.forEach((r,i)=>{
+    const b=document.createElement('button');b.type='button';b.className='res';
+    b.innerHTML=`${r.poster?`<img src="${esc(r.poster)}" alt="" loading="lazy">`:'<div class="ph"></div>'}<div><div class="t">${esc(r.title)}${r.year?` <span class="muted" style="font-weight:400">(${esc(r.year)})</span>`:''}</div>
+      ${r.original&&norm(r.original)!==norm(r.title)?`<div class="o">${esc(r.original)}</div>`:''}
+      <div class="tags"><span class="tag k">${r.anime?'Anime':KIND[r.kind]}</span>${r.src.map(s=>`<span class="tag">${s}</span>`).join('')}</div></div>`;
+    b.onclick=()=>go({v:'detail',i});
+    $('rl').appendChild(b);
+  });
+}
+
+/* ---------- ficha ---------- */
+async function detail(r){
+  if(!r)return home();
+  window.scrollTo(0,0);
+  $('main').innerHTML=`<button class="back" type="button" onclick="history.back()">‹ Resultados</button><p class="loading">A juntar informação de «${esc(r.title)}»…</p>`;
+  const t=T();let d=null;
+  // 1. TMDB: serviços por país e IDs para as outras fontes
+  if(t){
+    try{
+      if(!r.tmdb&&r.imdb){const f=await t.findByImdb(r.imdb);if(f){r.kind=f.kind;r.tmdb=f.tmdb}}
+      if(r.tmdb&&(r.kind==='movie'||r.kind==='tv'))d=await t.details(r.kind,r.tmdb,'pt-PT');
+    }catch(e){if(e.message==='chave'){KEY='';store.set('tmdbKey','')}}
+  }
+  const ids=d?d.ids:{};
+  const imdb=r.imdb||ids.imdb_id,wikidata=r.wikidata||ids.wikidata_id;
+  // 2. Wikidata, TVmaze e AniList em paralelo
+  const isTv=r.kind==='tv'||r.kind==='anime';
+  const [wdR,tvR,anR]=await Promise.allSettled([
+    wikidata?SRC.wdEntities([wikidata]).then(x=>x[0]):Promise.resolve(null),
+    isTv&&imdb?SRC.tvmazeByImdb(imdb):Promise.resolve(null),
+    r.anilist?Promise.resolve(r.anilist):(r.anime||(d&&d.title&&r.kind!=='movie'&&/ja/.test(r.lang||'')))?SRC.anilistSearch(r.original||r.title).then(a=>a.find(x=>x.titles.some(n=>norm(n.name)===norm(r.original)||norm(n.name)===norm(r.title)))||null):Promise.resolve(null)
+  ]);
+  const wd=wdR.status==='fulfilled'?wdR.value:null,tv=tvR.status==='fulfilled'?tvR.value:null,an=anR.status==='fulfilled'?anR.value:null;
+  let labels={},props={};
+  try{[labels,props]=await Promise.all([wd?SRC.wdLabels(wd.broadcasters):{},wd&&wd.services.length?SRC.wdServiceProps():{}])}catch(e){}
+
+  const title=(d&&d.title)||r.title,original=(d&&d.original)||r.original||(wd&&wd.original),year=(d&&d.year)||r.year;
+  const poster=(d&&d.poster)||r.poster||(tv&&tv.poster)||(an&&an.poster);
+  let html=`<button class="back" type="button" onclick="history.back()">‹ Resultados</button>
+    <div class="head">${poster?`<img src="${esc(poster)}" alt="">`:'<div></div>'}<div style="display:grid;gap:6px;min-width:0">
+      <h2>${esc(title)}</h2>${original&&norm(original)!==norm(title)?`<div class="muted">${esc(original)}</div>`:''}
+      <div class="tags">${year?`<span class="tag">${esc(year)}</span>`:''}<span class="tag k">${r.anime||an?'Anime':KIND[r.kind]}</span></div>
+      ${d&&d.overview?`<p class="note" style="margin:0">${esc(d.overview.length>260?d.overview.slice(0,260)+'…':d.overview)}</p>`:''}
+    </div></div>`;
+  html+=providersHtml(d);
+  html+=channelsHtml(d,tv,wd,labels);
+  if(an&&an.links.length)html+=`<div class="sec"><h3>Anime: <b>sites oficiais</b></h3><div class="provs">${an.links.map(l=>`<a class="prov${isMine(l.name)?' mine':''}" href="${esc(l.url)}">${esc(l.name)}${l.lang?` <span class="muted">· ${esc(l.lang)}</span>`:''}</a>`).join('')}</div><p class="src">Fonte: AniList. Os sites indicados podem não estar disponíveis em todos os países.</p></div>`;
+  if(wd&&wd.services.length){const links=wd.services.map(s=>{const p=props[s.prop]||{};const name=(p.name||s.prop).replace(/\b(ID|identificador|identifier)\b/gi,'').replace(/\s+(de|do|da|on)\s*$/i,'').replace(/^\s*(de|do|da)\s+/i,'').trim();return p.url?`<a class="prov${isMine(name)?' mine':''}" href="${esc(p.url.replace('$1',encodeURIComponent(s.id)))}">${esc(name)}</a>`:''}).join('');
+    if(links)html+=`<div class="sec"><h3>Links <b>diretos</b></h3><div class="provs">${links}</div><p class="src">Fonte: Wikidata. Indica que o título existe nesse serviço, mas não em que países.</p></div>`}
+  html+=akaHtml(d,wd,tv,an);
+  html+=`<p class="note">Disponibilidade por país: JustWatch, via TMDB. Também: Wikidata, TVmaze e AniList. Os catálogos mudam com frequência. Usar uma VPN para aceder a catálogos de outros países pode ir contra os termos de alguns serviços.</p>`;
+  $('main').innerHTML=html;
+}
+const GROUPS=[['flatrate','Incluído na subscrição'],['free','Grátis'],['ads','Grátis com anúncios'],['rent','Alugar'],['buy','Comprar']];
+function providersHtml(d){
+  if(!KEY)return `<div class="sec"><h3>Onde ver em <b>${flag(COUNTRY)} ${esc(regionName(COUNTRY))}</b></h3><p class="err" style="margin:0">Para ver os serviços por país, junta a chave gratuita do TMDB nas definições (⚙︎).</p></div>`;
+  if(!d)return `<div class="sec"><h3>Onde ver em <b>${flag(COUNTRY)} ${esc(regionName(COUNTRY))}</b></h3><p class="muted" style="margin:0">Não encontrei este título na TMDB, por isso não tenho os serviços por país.</p></div>`;
+  const P=d.providers,here=P[COUNTRY];
+  const logo=p=>p.logo_path?`<img src="https://image.tmdb.org/t/p/w92${esc(p.logo_path)}" alt="">`:'';
+  let h=`<div class="sec"><h3>Onde ver em <b>${flag(COUNTRY)} ${esc(regionName(COUNTRY))}</b></h3>`;
+  const groups=here?GROUPS.filter(([k])=>here[k]&&here[k].length):[];
+  if(groups.length){
+    for(const [k,label] of groups)h+=`<div class="grp"><span class="gl">${label}</span><div class="provs">${here[k].map(p=>`<a class="prov${isMine(p.provider_name)?' mine':''}" href="${esc(here.link)}">${logo(p)}${esc(p.provider_name)}${isMine(p.provider_name)?' <span class="ok">✓</span>':''}</a>`).join('')}</div></div>`;
+    if(MINE.length&&!groups.some(([k])=>(k==='flatrate'||k==='free'||k==='ads')&&here[k].some(p=>isMine(p.provider_name))))h+=`<p class="note" style="margin:0">Nenhum destes é um dos teus serviços.</p>`;
+  }else h+=`<p style="margin:0">Não está disponível em streaming em ${esc(regionName(COUNTRY))}, segundo a JustWatch.</p>`;
+  h+='</div>';
+  // Com VPN: serviços de subscrição ou grátis noutros países
+  const byProv={};
+  for(const [cc,v] of Object.entries(P)){if(cc===COUNTRY)continue;
+    for(const k of ['flatrate','free','ads'])for(const p of (v[k]||[])){const e=byProv[p.provider_name]=byProv[p.provider_name]||{p,cc:new Set(),free:k!=='flatrate'};e.cc.add(cc)}}
+  const hereNames=new Set(here?['flatrate','free','ads'].flatMap(k=>(here[k]||[]).map(p=>p.provider_name)):[]);
+  const rows=Object.values(byProv).filter(e=>!hereNames.has(e.p.provider_name)).sort((a,b)=>(isMine(b.p.provider_name)-isMine(a.p.provider_name))||(b.cc.size-a.cc.size));
+  if(rows.length){
+    const near=['ES','FR','GB','US','BR','DE','IT','IE','NL','BE','CH','CA'];
+    h+=`<div class="sec"><h3>Com <b>VPN</b></h3><p class="note" style="margin:0">Disponível na subscrição ou grátis nestes países. Liga a VPN para um deles e abre o serviço.</p><div class="vpn">`;
+    for(const e of rows.slice(0,12)){
+      const cs=[...e.cc].sort((a,b)=>((near.indexOf(a)+1||99)-(near.indexOf(b)+1||99)));
+      const shown=cs.slice(0,8).map(cc=>`${flag(cc)} ${esc(regionName(cc))}`).join(', ');
+      h+=`<div class="vrow${isMine(e.p.provider_name)?' mine':''}">${logo(e.p)}<div><div class="pn">${esc(e.p.provider_name)}${isMine(e.p.provider_name)?' <span class="ok">· tens este serviço</span>':''}${e.free?' <span class="muted">· grátis</span>':''}</div><div class="cs">${shown}${cs.length>8?` e mais ${cs.length-8} países`:''}</div></div></div>`;
+    }
+    h+=`</div></div>`;
+  }
+  return h;
+}
+function channelsHtml(d,tv,wd,labels){
+  const items=[];
+  if(tv&&tv.channel)items.push(`${tv.channel.kind==='canal'?'Canal':'Serviço'}: <b>${esc(tv.channel.name)}</b>${tv.channel.country?` ${flag(tv.channel.country)} ${esc(regionName(tv.channel.country))}`:''} <span class="src">(TVmaze)</span>`);
+  if(d&&d.networks.length)items.push(`Estreou em: <b>${d.networks.map(esc).join(', ')}</b> <span class="src">(TMDB)</span>`);
+  if(wd&&wd.broadcasters.length)items.push(`Emissora original: <b>${wd.broadcasters.map(b=>esc(labels[b]||b)).join(', ')}</b> <span class="src">(Wikidata)</span>`);
+  if(tv&&tv.url)items.push(`<a href="${esc(tv.url)}">Site oficial</a>`);
+  return items.length?`<div class="sec"><h3>Canal e <b>estreia original</b></h3>${items.map(i=>`<div>${i}</div>`).join('')}</div>`:'';
+}
+function akaHtml(d,wd,tv,an){
+  const seen=new Set(),out=[];
+  const add=(name,tag)=>{const k=norm(name);if(!name||!k||seen.has(k))return;seen.add(k);out.push(`<span>${esc(name)}${tag?`<small>${esc(tag)}</small>`:''}</span>`)};
+  if(d)for(const t of d.titles)add(t.name,t.where?regionName(t.where):langName(t.lang));
+  if(tv&&tv.akas)for(const a of tv.akas)add(a.name,a.where?regionName(a.where):'');
+  if(an)for(const t of an.titles)add(t.name,'');
+  if(wd)for(const t of wd.titles)add(t.name,langName(t.lang.split('-')[0]));
+  return out.length?`<div class="sec"><h3>Também conhecido como</h3><div class="aka">${out.slice(0,40).join('')}</div>${out.length>40?`<p class="note" style="margin:0">E mais ${out.length-40} nomes.</p>`:''}</div>`:'';
+}
+
+/* ---------- definições ---------- */
+function settings(){go({v:'settings'})}
+function settingsView(){
+  const opts=COUNTRIES.map(cc=>[cc,regionName(cc)]).sort((a,b)=>a[1].localeCompare(b[1],'pt')).map(([cc,n])=>`<option value="${cc}"${cc===COUNTRY?' selected':''}>${flag(cc)} ${esc(n)}</option>`).join('');
+  $('main').innerHTML=`<button class="back" type="button" onclick="history.back()">‹ Voltar</button>
+  <div class="sec"><h3>Definições</h3>
+    <div class="field"><label for="country">O teu país</label><select id="country">${opts}</select></div>
+    <div class="field"><label>Os teus serviços</label><div class="svc">${MY_OPTIONS.map(s=>`<label><input type="checkbox" value="${esc(s)}"${MINE.includes(s)?' checked':''}> ${esc(s)}</label>`).join('')}</div><span class="note">Aparecem destacados e no topo das sugestões de VPN.</span></div>
+    <div class="field"><label for="key">Chave da API do TMDB</label><input id="key" autocomplete="off" spellcheck="false" placeholder="cola aqui a chave" value="${esc(KEY)}"><span class="note">Gratuita. Cria conta em themoviedb.org e copia a chave em Definições → API. Serve a «Chave da API» ou o «Token de leitura». Fica guardada só neste telemóvel.</span></div>
+    <button class="primary" id="save" type="button">Guardar</button>
+  </div>`;
+  $('save').onclick=()=>{COUNTRY=$('country').value;KEY=$('key').value.trim();MINE=[...document.querySelectorAll('.svc input:checked')].map(i=>i.value);
+    store.set('country',COUNTRY);store.set('tmdbKey',KEY);store.set('mine',JSON.stringify(MINE));setCountryChip();history.back()};
+}
+history.replaceState({v:'home'},'');home();
+</script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+name: App Onde Ver
+
+on:
+  push:
+    branches: [claude/animation-film-from-description-8fedix]
+    paths: ['onde-ver/**', '.github/workflows/onde-ver.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Verificar fontes de dados
+        run: node onde-ver/tools/check-sources.mjs
+        continue-on-error: true
+        env:
+          TMDB_KEY: ${{ secrets.TMDB_KEY }}
+
+      - name: Compilar APK
+        run: gradle -p onde-ver assembleDebug --no-daemon
+
+      - run: cp onde-ver/app/build/outputs/apk/debug/app-debug.apk onde-ver.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: onde-ver-apk
+          path: onde-ver.apk
+
+      - name: Publicar versão
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: onde-ver-v${{ github.run_number }}
+          name: Onde Ver 1.0.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          make_latest: false
+          files: onde-ver.apk
+          body: |
+            App Android «Onde Ver»: escreve o nome de um filme, série, novela ou anime e vê onde está disponível.
+            Descarregue `onde-ver.apk` no telemóvel e abra-o para instalar.

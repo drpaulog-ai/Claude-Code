@@ -56,6 +56,16 @@ h1 span{color:var(--gold)}
 .feedback .d{color:var(--muted);font-size:14px}
 .primary{justify-self:start;background:var(--gold);color:#1a1405;border:0;padding:13px 24px;border-radius:6px;font-weight:700;cursor:pointer;font-size:16px}
 .primary:disabled{opacity:.5}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.dispute{background:transparent;border:1px solid var(--gold);color:var(--gold);padding:12px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:15px}
+.dispute:disabled{opacity:.5}
+.checks{display:grid;gap:8px;margin:4px 0 0;padding:12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);font-size:14px}
+.checks .ck{display:grid;grid-template-columns:22px minmax(0,1fr);gap:8px}
+.checks .ck b{display:block;color:var(--ink);font-weight:600}
+.checks .ck span{color:var(--muted)}
+.checks .ic{font-weight:700;text-align:center}
+.checks .ic.j{color:var(--ok)}.checks .ic.g{color:var(--bad)}.checks .ic.n{color:var(--muted)}
+.checks .verdict{font-family:var(--display);font-size:20px;text-transform:uppercase}
 button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .rank{display:grid;gap:8px}
 .ritem{display:grid;grid-template-columns:26px 50px minmax(0,1fr) auto;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px}
@@ -213,7 +223,7 @@ function showQuestion(){
   S.answered=false;S.inRank=false;const q=S.q;
   $('main').innerHTML=`<div class="stage">
     <div class="poster" id="poster"><img src="${esc(q.src)}" alt="Cartaz do filme a adivinhar">${q.textless?'<span class="badge">cartaz sem texto</span>':'<div class="veil top"></div><div class="veil bot"></div>'}</div>
-    <div class="ask"><h2>Que filme é este?</h2><div class="opts" id="opts"></div><div class="feedback" id="fb"></div><button class="primary" id="nextB" type="button" hidden>Seguinte</button></div>
+    <div class="ask"><h2>Que filme é este?</h2><div class="opts" id="opts"></div><div class="feedback" id="fb"></div><div class="actions"><button class="primary" id="nextB" type="button" hidden>Seguinte</button><button class="dispute" id="dispB" type="button" hidden>Desafiar resposta</button></div><div id="checks"></div></div>
   </div>`;
   renderOpts();updateBar();window.scrollTo(0,0);
   S.next=buildQuestion().catch(()=>null);
@@ -223,18 +233,39 @@ function renderOpts(){
   q.opts.forEach((o,i)=>{const b=document.createElement('button');b.type='button';b.className='opt'+(o.gone?' gone':'')+(o.hint?' hint':'');b.innerHTML=`<span class="k">${'ABCD'[i]}</span><span>${esc(o.title)}</span>`;b.disabled=o.gone||S.answered;b.addEventListener('click',()=>answer(o.id));o.el=b;$('opts').appendChild(b)});
 }
 function answer(id){
-  if(S.answered)return;S.answered=true;const q=S.q,good=id===q.m.id;
+  if(S.answered)return;S.answered=true;const q=S.q,good=id===q.m.id;q.chosen=id;
   q.opts.forEach(o=>{o.el.disabled=true;if(o.id===q.m.id)o.el.classList.add('ok');else if(o.id===id)o.el.classList.add('bad')});
   $('poster').classList.add('reveal');
   const y=yearOf(q.m),orig=q.m.en!==q.m.title?' · '+esc(q.m.en):'';
   if(good){S.ok++;S.pts+=10;$('fb').innerHTML=`<div class="t ok">Certo!</div><div class="d">${esc(q.m.title)} (${y})${orig}</div>`;
     if(S.ok%HELP_EVERY===0)grantHelp();
     if(S.ok%RANK_EVERY===0)S.pendingRank=true}
-  else{S.lives--;$('fb').innerHTML=`<div class="t bad">Errado</div><div class="d">Era <b>${esc(q.m.title)}</b> (${y})${orig}.</div>`;if(navigator.vibrate)navigator.vibrate(120)}
+  else{S.lives--;$('fb').innerHTML=`<div class="t bad">Errado</div><div class="d">Era <b>${esc(q.m.title)}</b> (${y})${orig}.</div>`;if(navigator.vibrate)navigator.vibrate(120);
+    const db=$('dispB');db.hidden=false;db.textContent='Desafiar resposta';db.onclick=()=>dispute(db)}
   if(S.pts>S.best){S.best=S.pts;store.set('best',S.best)}
   updateBar();
   const nb=$('nextB');nb.hidden=false;nb.textContent=S.lives<=0?'Ver resultado':S.pendingRank?'Desafio de ranking!':'Seguinte';
   nb.onclick=next;nb.scrollIntoView({block:'nearest',behavior:'smooth'});
+}
+/* ---------- desafiar resposta ---------- */
+// O jogador acha que o cartaz é do filme que escolheu. Confirma-se em várias fontes:
+// se o jogo tinha razão o jogador perde uma vida, se o jogador tinha razão ganha uma.
+async function dispute(btn){
+  const q=S.q,player=S.films.find(f=>f.id===q.chosen);if(!player||q.disputed)return;
+  q.disputed=true;btn.disabled=true;btn.textContent='A confirmar…';$('nextB').disabled=true;
+  $('checks').innerHTML=`<div class="checks"><span class="loading">A confirmar online se o cartaz é de «${esc(player.title)}» ou de «${esc(q.m.title)}»…</span></div>`;
+  let r;try{r=await SRC.verifyPoster({src:q.src,game:q.m,player,key:KEY})}catch(e){r=null}
+  btn.hidden=true;$('nextB').disabled=false;
+  if(!r){$('checks').innerHTML='<div class="checks"><span>Não consegui confirmar: as fontes não responderam. Não perdes nem ganhas vidas.</span></div>';q.disputed=false;return}
+  const icon={jogador:['✓','j'],jogo:['✗','g']};
+  const list=r.checks.map(c=>{const [i,k]=icon[c.verdict]||['–','n'];return `<div class="ck"><span class="ic ${k}">${i}</span><div><b>${esc(c.source)}</b><span>${esc(c.detail)}</span></div></div>`}).join('');
+  const pro=r.checks.filter(c=>c.verdict==='jogador').length,con=r.checks.filter(c=>c.verdict==='jogo').length;
+  let verdict;
+  if(r.playerRight){S.lives=Math.min(LIVES,S.lives+1);verdict=`<div class="verdict" style="color:var(--ok)">Tinhas razão! Ganhas uma vida</div><span style="color:var(--muted)">${pro} fontes a teu favor, ${con} a favor do jogo.</span>`;
+    q.opts.forEach(o=>{if(o.id===player.id){o.el.classList.remove('bad');o.el.classList.add('ok')}})}
+  else{S.lives=Math.max(0,S.lives-1);verdict=`<div class="verdict" style="color:var(--bad)">O jogo tinha razão. Perdes uma vida</div><span style="color:var(--muted)">${con} fontes a favor do jogo, ${pro} a teu favor.${pro===con?' Em empate fica a resposta do jogo.':''}</span>`;if(navigator.vibrate)navigator.vibrate([80,60,80])}
+  $('checks').innerHTML=`<div class="checks">${verdict}${list}</div>`;
+  updateBar();$('nextB').textContent=S.lives<=0?'Ver resultado':S.pendingRank?'Desafio de ranking!':'Seguinte';
 }
 function grantHelp(){const r=Math.random();const k=r<.45?'fifty':r<.9?'eraser':'bull';S.helps[k]++;toast('Ganhaste uma ajuda: '+{fifty:'50/50',eraser:'Borracha',bull:'Na mouche'}[k]+'!')}
 async function next(){

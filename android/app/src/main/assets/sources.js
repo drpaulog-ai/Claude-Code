@@ -110,7 +110,78 @@ var SOURCES = (function () {
       if (ps.length) return { src: 'https://image.tmdb.org/t/p/w500' + ps[0].file_path, textless: true };
       return m.poster_path ? { src: 'https://image.tmdb.org/t/p/w500' + m.poster_path, textless: false } : null;
     }
-    return { films, stats, posters, tmdbPoster };
+    // ---------- Desafiar resposta ----------
+    // Nome do ficheiro de uma imagem da Wikimedia, a partir do url (normal ou miniatura)
+    function fileOf(src) {
+      const p = new URL(src).pathname.split('/');
+      const i = p.indexOf('thumb');
+      return decodeURIComponent(i >= 0 ? p[i + 3] : p[p.length - 1]).replace(/_/g, ' ');
+    }
+    const words = t => t.toLowerCase().replace(/\(.*?\)/g, ' ').split(/[^a-z0-9]+/).filter(w => w.length > 2 && !['the', 'and', 'film', 'poster', 'part'].includes(w));
+    async function tmdbFiles(key, imdb) {
+      const auth = key.startsWith('eyJ') ? { Authorization: 'Bearer ' + key } : null;
+      const k = auth ? '' : '&api_key=' + encodeURIComponent(key);
+      const f = await json(TMDB + '/find/' + imdb + '?external_source=imdb_id' + k, auth);
+      const m = (f.movie_results || [])[0];
+      if (!m) return [];
+      const im = await json(TMDB + '/movie/' + m.id + '/images' + (k ? '?' + k.slice(1) : ''), auth);
+      return (im.posters || []).map(p => p.file_path).concat(m.poster_path ? [m.poster_path] : []);
+    }
+    // O jogador diz que o cartaz é de `player` e não de `game`. Cada fonte dá razão ao jogo, ao jogador, ou não decide (null).
+    async function verifyPoster({ src, game, player, key }) {
+      const checks = [];
+      const add = async (source, fn) => {
+        try { checks.push(Object.assign({ source }, await fn())); }
+        catch (e) { checks.push({ source, verdict: null, detail: 'Não respondeu (' + e.message + ').' }); }
+      };
+      if (src.includes('image.tmdb.org')) {
+        const path = src.slice(src.indexOf('/t/p/') + 5).replace(/^[^/]+/, '');
+        await add('TMDB: imagens de cada filme', async () => {
+          if (!key) return { verdict: null, detail: 'Sem chave do TMDB.' };
+          const [g, p] = await Promise.all([game.imdb ? tmdbFiles(key, game.imdb) : [], player.imdb ? tmdbFiles(key, player.imdb) : []]);
+          if (p.includes(path) && !g.includes(path)) return { verdict: 'jogador', detail: `O cartaz está nas imagens de «${player.en}».` };
+          if (g.includes(path)) return { verdict: 'jogo', detail: `O cartaz está nas imagens de «${game.en}».` };
+          return { verdict: null, detail: 'O cartaz não aparece em nenhum dos dois filmes.' };
+        });
+      } else {
+        const file = fileOf(src);
+        await add('Wikipédia: artigos que usam esta imagem', async () => {
+          const d = await json(WP + '?action=query&list=imageusage&iunamespace=0&iulimit=50&format=json&formatversion=2&origin=*&iutitle=' + encodeURIComponent('File:' + file));
+          const used = (d.query && d.query.imageusage || []).map(p => p.title);
+          const g = used.includes(game.art), p = used.includes(player.art);
+          if (p && !g) return { verdict: 'jogador', detail: `A imagem é usada no artigo «${player.art}» e não no de «${game.art}».` };
+          if (g && !p) return { verdict: 'jogo', detail: `A imagem é usada no artigo «${game.art}».` };
+          return { verdict: null, detail: g ? 'A imagem é usada nos artigos dos dois filmes.' : 'Nenhum dos dois artigos usa esta imagem.' };
+        });
+        await add(`Wikipédia: imagem principal de «${player.art}»`, async () => {
+          const r = await posters([player.art]);
+          if (!r[player.art]) return { verdict: null, detail: 'Esse artigo não tem imagem principal.' };
+          return fileOf(r[player.art]) === file
+            ? { verdict: 'jogador', detail: 'O artigo do filme que escolheste mostra exatamente este cartaz.' }
+            : { verdict: 'jogo', detail: 'O artigo do filme que escolheste mostra outro cartaz.' };
+        });
+        await add('Wikidata: imagem e cartaz registados', async () => {
+          const rows = await sparql(`SELECT ?film ?img WHERE { VALUES ?film { wd:${game.id} wd:${player.id} } ?film wdt:P3383|wdt:P18 ?img }`);
+          const files = {};
+          for (const r of rows) (files[qid(r.film.value)] = files[qid(r.film.value)] || []).push(decodeURIComponent(r.img.value.split('/').pop()).replace(/_/g, ' '));
+          if ((files[player.id] || []).includes(file)) return { verdict: 'jogador', detail: `A Wikidata liga este cartaz a «${player.en}».` };
+          if ((files[game.id] || []).includes(file)) return { verdict: 'jogo', detail: `A Wikidata liga este cartaz a «${game.en}».` };
+          return { verdict: null, detail: 'A Wikidata não tem este cartaz em nenhum dos dois filmes.' };
+        });
+        await add('Nome do ficheiro', async () => {
+          const f = file.toLowerCase(), hit = t => words(t).filter(w => f.includes(w)).length / Math.max(1, words(t).length);
+          const g = hit(game.en), p = hit(player.en);
+          if (p > g && p >= .5) return { verdict: 'jogador', detail: `«${file}» corresponde mais a «${player.en}».` };
+          if (g > p && g >= .5) return { verdict: 'jogo', detail: `«${file}» corresponde mais a «${game.en}».` };
+          return { verdict: null, detail: `«${file}» não decide.` };
+        });
+      }
+      const pro = checks.filter(c => c.verdict === 'jogador').length, con = checks.filter(c => c.verdict === 'jogo').length;
+      // Em caso de empate fica a resposta do jogo: o cartaz veio do artigo desse filme.
+      return { checks, playerRight: pro > con };
+    }
+
+    return { films, stats, posters, tmdbPoster, verifyPoster, fileOf };
   }
   return { make, oscarTable };
 })();

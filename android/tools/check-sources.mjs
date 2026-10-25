@@ -27,3 +27,14 @@ const sample = films.slice(0, 50);
 const ps = await SRC.posters(sample.map(f => f.art));
 console.log(`Cartazes da Wikipédia: ${Object.keys(ps).length} de ${sample.length}`);
 console.log('Exemplo:', Object.entries(ps).slice(0, 3));
+
+// Desafiar resposta: cartaz do Titanic. Quem escolheu Avatar não tem razão; quem escolheu Titanic (com o jogo a dizer Avatar) tem.
+const titanic = pick('Q44578'), avatar = pick('Q24871');
+if (titanic && avatar) {
+  const src = (await SRC.posters([titanic.art]))[titanic.art];
+  for (const [game, player, esperado] of [[titanic, avatar, 'jogo'], [avatar, titanic, 'jogador']]) {
+    const r = await SRC.verifyPoster({ src, game, player });
+    console.log(`Desafio: jogo diz ${game.en}, jogador diz ${player.en} → ${r.playerRight ? 'jogador' : 'jogo'} tem razão (esperado: ${esperado})`);
+    for (const c of r.checks) console.log('   ', c.verdict || '-', '|', c.source, '|', c.detail);
+  }
+}

@@ -19,11 +19,17 @@ await step('Wikidata: pesquisa em várias línguas', async () => {
   console.log('Etiquetas:', JSON.stringify(l));
 });
 
+await step('Capas da Wikipédia', async () => {
+  const w = await SRC.wikiPosters([['en', 'Avenida Brasil (TV series)'], ['pt', 'Avenida Brasil (telenovela)'], ['en', 'Money Heist']]);
+  console.log(JSON.stringify(w));
+});
+
 await step('TVmaze', async () => {
   const r = await SRC.tvmazeSearch('Dark');
   console.log('Pesquisa Dark →', r.slice(0, 3).map(s => `${s.title} (${s.year}) ${s.channel && s.channel.name} imdb=${s.imdb}`).join(' | '));
   const s = await SRC.tvmazeByImdb('tt5753856');
   console.log('Dark por IMDb →', s && s.title, JSON.stringify(s && s.channel), 'akas:', s && s.akas.slice(0, 5).map(a => a.name + '/' + a.where).join(', '));
+  for (const imdb of ['tt0108778', 'tt11126994', 'tt0386676']) { const x = await SRC.tvmazeByImdb(imdb); console.log('Próximo episódio', imdb, x && x.title, JSON.stringify(x && x.nextEpisode)); }
   const n = await SRC.tvmazeSearch('Avenida Brasil');
   console.log('Avenida Brasil →', n.slice(0, 2).map(s => `${s.title} ${s.channel && s.channel.name}/${s.channel && s.channel.country}`).join(' | '));
 });

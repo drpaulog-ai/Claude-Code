@@ -35,8 +35,14 @@ main{max-width:760px;margin:0 auto;padding-block:16px calc(40px + env(safe-area-
 .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 .tag{font-size:11px;letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--muted)}
 .tag.k{border-color:var(--accent);color:var(--accent)}
-.head{display:grid;grid-template-columns:110px minmax(0,1fr);gap:14px;align-items:start}
-.head img{width:110px;border-radius:8px;background:var(--panel2)}
+.head{display:grid;grid-template-columns:140px minmax(0,1fr);gap:14px;align-items:start}
+.head img,.head .ph{width:140px;aspect-ratio:2/3;object-fit:cover;border-radius:8px;background:var(--panel2)}
+.dates{display:grid;gap:6px}
+.dates div{display:flex;gap:8px;align-items:baseline}
+.dates b{font-variant-numeric:tabular-nums}
+.subs{font-size:14px;border-left:3px solid var(--warn);padding-left:10px}
+.subs.yes{border-color:var(--ok)}
+.prov .lk{font-size:12px;color:var(--muted)}
 .head h2{margin:0;font-size:22px;line-height:1.2}
 .sec{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px}
 .sec h3{margin:0;font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
@@ -127,6 +133,7 @@ async function search(q){
   const val=r=>r.status==='fulfilled'?r.value:[];
   if(tm.status==='rejected'&&tm.reason&&tm.reason.message==='chave'){KEY='';store.set('tmdbKey','')}
   RESULTS=merge(val(tm),val(wd),val(tv),val(an));
+  await fillPosters(RESULTS);
   RESULTS.failed=[['TMDB',tm],['Wikidata',wd],['TVmaze',tv],['AniList',an]].filter(([n,r])=>r.status==='rejected').map(([n])=>n);
   go({v:'results'});
 }
@@ -137,8 +144,8 @@ function merge(tm,wd,tv,an){
   for(const w of wd){
     const kind=w.tmdbTv?'tv':'movie',tid=+(w.tmdbTv||w.tmdbMovie);
     const hit=(tid&&find(c=>c.tmdb===tid&&c.kind===kind))||(w.imdb&&find(c=>c.imdb===w.imdb));
-    if(hit){Object.assign(hit,{wikidata:w.wikidata,imdb:hit.imdb||w.imdb});hit.src.push('Wikidata');continue}
-    list.push({kind:tid?kind:'title',tmdb:tid||null,wikidata:w.wikidata,imdb:w.imdb,title:w.title,original:w.original,year:w.year,poster:null,src:['Wikidata']});
+    if(hit){Object.assign(hit,{wikidata:w.wikidata,imdb:hit.imdb||w.imdb,enwiki:w.enwiki,ptwiki:w.ptwiki});hit.src.push('Wikidata');continue}
+    list.push({kind:tid?kind:'title',tmdb:tid||null,wikidata:w.wikidata,imdb:w.imdb,enwiki:w.enwiki,ptwiki:w.ptwiki,title:w.title,original:w.original,year:w.year,poster:null,src:['Wikidata']});
   }
   for(const s of tv){
     const hit=(s.imdb&&find(c=>c.imdb===s.imdb))||find(c=>c.kind==='tv'&&norm(c.title)===norm(s.title)&&(!c.year||c.year===s.year));
@@ -152,6 +159,13 @@ function merge(tm,wd,tv,an){
     list.push({kind:'anime',anime:true,anilist:a,title:a.title,original:a.original,year:a.year,poster:a.poster,src:['AniList']});
   }
   return list.slice(0,20);
+}
+// Resultados sem capa: usa a imagem principal do artigo da Wikipédia
+async function fillPosters(list){
+  const need=list.filter(r=>!r.poster&&(r.enwiki||r.ptwiki));
+  if(!need.length)return;
+  try{const w=await SRC.wikiPosters(need.flatMap(r=>[r.enwiki&&['en',r.enwiki],r.ptwiki&&['pt',r.ptwiki]].filter(Boolean)));
+    for(const r of need)r.poster=w['en:'+r.enwiki]||w['pt:'+r.ptwiki]||null}catch(e){}
 }
 const KIND={movie:'Filme',tv:'Série',title:'Título',anime:'Anime'};
 function showResults(){
@@ -177,6 +191,9 @@ async function detail(r){
   if(t){
     try{
       if(!r.tmdb&&r.imdb){const f=await t.findByImdb(r.imdb);if(f){r.kind=f.kind;r.tmdb=f.tmdb}}
+      // anime da AniList ou títulos sem IDs: procura na TMDB pelos outros nomes, com o mesmo ano
+      if(!r.tmdb&&!r.imdb){const names=[r.title,r.original].concat(r.anilist?r.anilist.titles.map(x=>x.name):[]).filter(Boolean);
+        for(const n of names.slice(0,3)){const f=(await t.search(n,'pt-PT')).find(x=>!r.year||!x.year||Math.abs(+x.year-+r.year)<=1);if(f){r.kind=f.kind;r.tmdb=f.tmdb;break}}}
       if(r.tmdb&&(r.kind==='movie'||r.kind==='tv'))d=await t.details(r.kind,r.tmdb,'pt-PT');
     }catch(e){if(e.message==='chave'){KEY='';store.set('tmdbKey','')}}
   }
@@ -194,24 +211,40 @@ async function detail(r){
   try{[labels,props]=await Promise.all([wd?SRC.wdLabels(wd.broadcasters):{},wd&&wd.services.length?SRC.wdServiceProps():{}])}catch(e){}
 
   const title=(d&&d.title)||r.title,original=(d&&d.original)||r.original||(wd&&wd.original),year=(d&&d.year)||r.year;
-  const poster=(d&&d.poster)||r.poster||(tv&&tv.poster)||(an&&an.poster);
+  let poster=(d&&d.poster)||r.poster||(tv&&tv.poster)||(an&&an.poster);
+  if(!poster&&wd&&(wd.enwiki||wd.ptwiki)){try{const w=await SRC.wikiPosters([wd.enwiki&&['en',wd.enwiki],wd.ptwiki&&['pt',wd.ptwiki]].filter(Boolean),500);poster=w['en:'+wd.enwiki]||w['pt:'+wd.ptwiki]||null}catch(e){}}
   let html=`<button class="back" type="button" onclick="history.back()">‹ Resultados</button>
-    <div class="head">${poster?`<img src="${esc(poster)}" alt="">`:'<div></div>'}<div style="display:grid;gap:6px;min-width:0">
+    <div class="head">${poster?`<img src="${esc(poster)}" alt="Capa de ${esc(title)}">`:'<div class="ph"></div>'}<div style="display:grid;gap:6px;min-width:0">
       <h2>${esc(title)}</h2>${original&&norm(original)!==norm(title)?`<div class="muted">${esc(original)}</div>`:''}
       <div class="tags">${year?`<span class="tag">${esc(year)}</span>`:''}<span class="tag k">${r.anime||an?'Anime':KIND[r.kind]}</span></div>
       ${d&&d.overview?`<p class="note" style="margin:0">${esc(d.overview.length>260?d.overview.slice(0,260)+'…':d.overview)}</p>`:''}
     </div></div>`;
-  html+=providersHtml(d);
+  html+=datesHtml(d,tv,wd);
+  html+=providersHtml(d,wd,props,title);
   html+=channelsHtml(d,tv,wd,labels);
   if(an&&an.links.length)html+=`<div class="sec"><h3>Anime: <b>sites oficiais</b></h3><div class="provs">${an.links.map(l=>`<a class="prov${isMine(l.name)?' mine':''}" href="${esc(l.url)}">${esc(l.name)}${l.lang?` <span class="muted">· ${esc(l.lang)}</span>`:''}</a>`).join('')}</div><p class="src">Fonte: AniList. Os sites indicados podem não estar disponíveis em todos os países.</p></div>`;
-  if(wd&&wd.services.length){const links=wd.services.map(s=>{const p=props[s.prop]||{};const name=(p.name||s.prop).replace(/\b(ID|identificador|identifier)\b/gi,'').replace(/\s+(de|do|da|on)\s*$/i,'').replace(/^\s*(de|do|da)\s+/i,'').trim();return p.url?`<a class="prov${isMine(name)?' mine':''}" href="${esc(p.url.replace('$1',encodeURIComponent(s.id)))}">${esc(name)}</a>`:''}).join('');
+  if(wd&&wd.services.length){const links=wd.services.map(s=>{const p=props[s.prop]||{};const name=p.name||s.prop;return p.url?`<a class="prov${isMine(name)?' mine':''}" href="${esc(p.url.replace('$1',encodeURIComponent(s.id)))}">${esc(name)}</a>`:''}).join('');
     if(links)html+=`<div class="sec"><h3>Links <b>diretos</b></h3><div class="provs">${links}</div><p class="src">Fonte: Wikidata. Indica que o título existe nesse serviço, mas não em que países.</p></div>`}
   html+=akaHtml(d,wd,tv,an);
   html+=`<p class="note">Disponibilidade por país: JustWatch, via TMDB. Também: Wikidata, TVmaze e AniList. Os catálogos mudam com frequência. Usar uma VPN para aceder a catálogos de outros países pode ir contra os termos de alguns serviços.</p>`;
   $('main').innerHTML=html;
 }
 const GROUPS=[['flatrate','Incluído na subscrição'],['free','Grátis'],['ads','Grátis com anúncios'],['rent','Alugar'],['buy','Comprar']];
-function providersHtml(d){
+// Link para o título em cada serviço: direto (ID da Wikidata), pesquisa do serviço, ou página da JustWatch
+const SEARCH=[[/netflix/,'https://www.netflix.com/search?q='],[/amazon|prime video/,'https://www.primevideo.com/search?phrase='],[/disney/,'https://www.disneyplus.com/search?q='],[/^max$|hbo max/,'https://play.max.com/search?q='],[/apple tv/,'https://tv.apple.com/search?term='],[/crunchyroll/,'https://www.crunchyroll.com/search?q='],[/mubi/,'https://mubi.com/search/films?query='],[/youtube/,'https://www.youtube.com/results?search_query='],[/google play/,'https://play.google.com/store/search?c=movies&q=']];
+function linkFor(name,wd,props,title,fallback){
+  const n=name.toLowerCase();
+  if(wd)for(const s of wd.services){const p=props[s.prop];if(p&&p.url&&(norm(p.name).includes(norm(name).slice(0,5))||norm(name).includes(norm(p.name).slice(0,5))))return {url:p.url.replace('$1',encodeURIComponent(s.id)),how:'abre o título'}}
+  for(const [re,u] of SEARCH)if(re.test(n))return {url:u+encodeURIComponent(title),how:'pesquisa no serviço'};
+  return {url:fallback,how:'via JustWatch'};
+}
+// A TMDB e a JustWatch não dizem que legendas tem cada título: isto é uma indicação, não uma confirmação.
+function subsHtml(cc){
+  if(cc==='PT')return `<p class="subs yes" style="margin:0">Legendas em português: <b>prováveis</b>. Em Portugal os serviços de streaming legendam quase todo o catálogo, mas as fontes não indicam as legendas de cada título. Confirma no serviço.</p>`;
+  if(cc==='BR'||cc==='AO'||cc==='MZ')return `<p class="subs yes" style="margin:0">Legendas em português${cc==='BR'?' do Brasil':''}: <b>prováveis</b>, mas não confirmadas pelas fontes.</p>`;
+  return `<p class="subs" style="margin:0">Legendas em português: <b>não garantidas</b> em ${esc(regionName(cc))}. As fontes não indicam as legendas de cada título.</p>`;
+}
+function providersHtml(d,wd,props,title){
   if(!KEY)return `<div class="sec"><h3>Onde ver em <b>${flag(COUNTRY)} ${esc(regionName(COUNTRY))}</b></h3><p class="err" style="margin:0">Para ver os serviços por país, junta a chave gratuita do TMDB nas definições (⚙︎).</p></div>`;
   if(!d)return `<div class="sec"><h3>Onde ver em <b>${flag(COUNTRY)} ${esc(regionName(COUNTRY))}</b></h3><p class="muted" style="margin:0">Não encontrei este título na TMDB, por isso não tenho os serviços por país.</p></div>`;
   const P=d.providers,here=P[COUNTRY];
@@ -219,9 +252,11 @@ function providersHtml(d){
   let h=`<div class="sec"><h3>Onde ver em <b>${flag(COUNTRY)} ${esc(regionName(COUNTRY))}</b></h3>`;
   const groups=here?GROUPS.filter(([k])=>here[k]&&here[k].length):[];
   if(groups.length){
-    for(const [k,label] of groups)h+=`<div class="grp"><span class="gl">${label}</span><div class="provs">${here[k].map(p=>`<a class="prov${isMine(p.provider_name)?' mine':''}" href="${esc(here.link)}">${logo(p)}${esc(p.provider_name)}${isMine(p.provider_name)?' <span class="ok">✓</span>':''}</a>`).join('')}</div></div>`;
+    for(const [k,label] of groups)h+=`<div class="grp"><span class="gl">${label}</span><div class="provs">${here[k].map(p=>{const l=linkFor(p.provider_name,wd,props,title,here.link);return `<a class="prov${isMine(p.provider_name)?' mine':''}" href="${esc(l.url)}">${logo(p)}<span>${esc(p.provider_name)}${isMine(p.provider_name)?' <span class="ok">✓</span>':''}<br><span class="lk">${l.how} ↗</span></span></a>`}).join('')}</div></div>`;
     if(MINE.length&&!groups.some(([k])=>(k==='flatrate'||k==='free'||k==='ads')&&here[k].some(p=>isMine(p.provider_name))))h+=`<p class="note" style="margin:0">Nenhum destes é um dos teus serviços.</p>`;
+    h+=subsHtml(COUNTRY);
   }else h+=`<p style="margin:0">Não está disponível em streaming em ${esc(regionName(COUNTRY))}, segundo a JustWatch.</p>`;
+  if(here&&here.link)h+=`<a href="${esc(here.link)}" style="font-size:14px">Ver todas as opções em ${esc(regionName(COUNTRY))} na JustWatch ↗</a>`;
   h+='</div>';
   // Com VPN: serviços de subscrição ou grátis noutros países
   const byProv={};
@@ -235,11 +270,29 @@ function providersHtml(d){
     for(const e of rows.slice(0,12)){
       const cs=[...e.cc].sort((a,b)=>((near.indexOf(a)+1||99)-(near.indexOf(b)+1||99)));
       const shown=cs.slice(0,8).map(cc=>`${flag(cc)} ${esc(regionName(cc))}`).join(', ');
-      h+=`<div class="vrow${isMine(e.p.provider_name)?' mine':''}">${logo(e.p)}<div><div class="pn">${esc(e.p.provider_name)}${isMine(e.p.provider_name)?' <span class="ok">· tens este serviço</span>':''}${e.free?' <span class="muted">· grátis</span>':''}</div><div class="cs">${shown}${cs.length>8?` e mais ${cs.length-8} países`:''}</div></div></div>`;
+      const l=linkFor(e.p.provider_name,wd,props,title,P[cs[0]].link);
+      h+=`<div class="vrow${isMine(e.p.provider_name)?' mine':''}">${logo(e.p)}<div><div class="pn"><a href="${esc(l.url)}" style="color:inherit">${esc(e.p.provider_name)} ↗</a>${isMine(e.p.provider_name)?' <span class="ok">· tens este serviço</span>':''}${e.free?' <span class="muted">· grátis</span>':''}</div><div class="cs">${shown}${cs.length>8?` e mais ${cs.length-8} países`:''}</div></div></div>`;
     }
-    h+=`</div></div>`;
+    h+=`</div><p class="subs" style="margin:0">Legendas em português com VPN: <b>prováveis no Brasil</b>, <b>não garantidas</b> nos outros países. As fontes não indicam as legendas de cada título.</p></div>`;
   }
   return h;
+}
+const TODAY=new Date().toISOString().slice(0,10);
+const fmtDate=d=>d.split('-').reverse().join('/');
+const RTYPE={3:'Cinema',4:'Digital (streaming, aluguer)',5:'DVD/Blu-ray',6:'Televisão'};
+function datesHtml(d,tv,wd){
+  const rows=[];
+  if(d&&d.releases){
+    const fut=d.releases.filter(x=>x.date>=TODAY&&RTYPE[x.type]);
+    const mine=fut.filter(x=>x.country===COUNTRY),other=fut.filter(x=>x.country!==COUNTRY&&['US','GB','ES','BR','FR'].includes(x.country));
+    for(const x of mine.concat(other).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,8))rows.push([x.date,`${flag(x.country)} ${esc(regionName(x.country))} · ${RTYPE[x.type]}${x.note?` (${esc(x.note)})`:''}`,'TMDB']);
+  }
+  const ne=(d&&d.nextEpisode)||(tv&&tv.nextEpisode);
+  if(ne&&ne.date)rows.push([ne.date,`Próximo episódio: T${ne.season} E${ne.episode}${ne.name?` «${esc(ne.name)}»`:''} (estreia original)`,d&&d.nextEpisode?'TMDB':'TVmaze']);
+  if(d&&d.firstAir&&d.firstAir>=TODAY)rows.push([d.firstAir,'Estreia da série (estreia original)','TMDB']);
+  if(wd&&wd.date&&wd.date>=TODAY&&!rows.length)rows.push([wd.date,'Data de estreia prevista','Wikidata']);
+  if(!rows.length)return '';
+  return `<div class="sec"><h3>Próximas <b>datas</b></h3><div class="dates">${rows.map(([dt,t,src])=>`<div><b>${fmtDate(dt)}</b><span>${t} <span class="src">(${src})</span></span></div>`).join('')}</div><p class="note" style="margin:0">As datas podem mudar. A data de entrada num serviço de streaming concreto nem sempre é conhecida antes do dia.</p></div>`;
 }
 function channelsHtml(d,tv,wd,labels){
   const items=[];

@@ -10,9 +10,10 @@ var SOURCES = (function () {
   const ANI = 'https://graphql.anilist.co';
   const IMG = 'https://image.tmdb.org/t/p/';
 
-  // Propriedades da Wikidata com o ID do título num serviço de streaming. O nome do serviço e o formato
-  // do link (P1630) vêm da própria Wikidata, por isso só os IDs das propriedades estão fixos aqui.
-  const WD_SERVICE_PROPS = ['P1874', 'P8055', 'P7595', 'P9586', 'P11460'];
+  // Propriedades da Wikidata com o ID do título num serviço de streaming, e o nome do serviço.
+  // O formato do link (P1630) vem da própria Wikidata.
+  const WD_SERVICE_NAMES = { P1874: 'Netflix', P8055: 'Prime Video', P7595: 'Disney+', P9586: 'Apple TV', P11460: 'Plex' };
+  const WD_SERVICE_PROPS = Object.keys(WD_SERVICE_NAMES);
 
   const norm = t => (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9぀-ヿ一-鿿가-힯]/g, '');
 
@@ -49,7 +50,7 @@ var SOURCES = (function () {
           }));
         },
         async details(kind, id, lang) {
-          const d = await get(`/${kind}/${id}`, { language: lang, append_to_response: 'external_ids,alternative_titles,watch/providers,translations' });
+          const d = await get(`/${kind}/${id}`, { language: lang, append_to_response: 'external_ids,alternative_titles,watch/providers,translations' + (kind === 'movie' ? ',release_dates' : '') });
           if (!d) return null;
           const alt = (d.alternative_titles && (d.alternative_titles.titles || d.alternative_titles.results)) || [];
           const tr = (d.translations && d.translations.translations) || [];
@@ -62,7 +63,13 @@ var SOURCES = (function () {
             overview: d.overview, poster: d.poster_path ? IMG + 'w342' + d.poster_path : null,
             networks: (d.networks || []).map(n => n.name),
             ids: Object.assign({ tmdb: id }, d.external_ids || {}),
-            titles, providers: (d['watch/providers'] && d['watch/providers'].results) || {}
+            titles, providers: (d['watch/providers'] && d['watch/providers'].results) || {},
+            // filmes: datas por país e tipo (3 cinema, 4 digital, 5 físico, 6 TV)
+            releases: ((d.release_dates && d.release_dates.results) || []).flatMap(r => r.release_dates.map(x => ({ country: r.iso_3166_1, type: x.type, date: x.release_date.slice(0, 10), note: x.note }))),
+            // séries: próximo episódio e estado
+            nextEpisode: d.next_episode_to_air ? { date: d.next_episode_to_air.air_date, season: d.next_episode_to_air.season_number, episode: d.next_episode_to_air.episode_number } : null,
+            firstAir: d.first_air_date || null, status: d.status || null,
+            hasPortuguese: tr.some(t => t.iso_639_1 === 'pt')
           };
         },
         async findByImdb(imdb) {
@@ -89,19 +96,22 @@ var SOURCES = (function () {
         if (!e || e.missing !== undefined) continue;
         const c = e.claims || {};
         const val = p => (c[p] || []).map(x => x.mainsnak && x.mainsnak.datavalue && x.mainsnak.datavalue.value).filter(Boolean);
+        // só títulos (códigos IMDb tt…), não pessoas (nm…)
+        if (!val('P345').some(v => /^tt/.test(v))) continue;
         const lab = l => e.labels && e.labels[l] && e.labels[l].value;
-        const date = val('P577').map(v => v.time).sort()[0] || '';
+        const date = val('P577').concat(val('P580')).map(v => v.time).sort()[0] || '';
         const titles = [];
         for (const [l, v] of Object.entries(e.labels || {})) titles.push({ name: v.value, lang: l });
         for (const [l, vs] of Object.entries(e.aliases || {})) for (const v of vs) titles.push({ name: v.value, lang: l });
         const services = [];
         for (const p of WD_SERVICE_PROPS) for (const v of val(p)) services.push({ prop: p, id: v });
+        const sl = e.sitelinks || {};
         out.push({
-          wikidata: id,
+          wikidata: id, enwiki: sl.enwiki && sl.enwiki.title, ptwiki: sl.ptwiki && sl.ptwiki.title, date: date.slice(1, 11),
           title: lab('pt') || lab('pt-br') || lab('en') || Object.values(e.labels || {})[0]?.value || id,
           original: (val('P1476')[0] || {}).text || lab('en'),
           year: date.slice(1, 5),
-          imdb: val('P345')[0] || null,
+          imdb: val('P345').find(v => /^tt/.test(v)) || null,
           tmdbMovie: val('P4947')[0] || null, tmdbTv: val('P4983')[0] || null,
           broadcasters: val('P449').map(v => v.id),
           countries: val('P495').map(v => v.id),
@@ -127,7 +137,7 @@ var SOURCES = (function () {
       propInfo = {};
       for (const [id, e] of Object.entries((d && d.entities) || {})) {
         const f = ((e.claims || {}).P1630 || [])[0];
-        propInfo[id] = { name: ((e.labels || {}).pt || (e.labels || {}).en || {}).value || id, url: f && f.mainsnak.datavalue ? f.mainsnak.datavalue.value : null };
+        propInfo[id] = { name: WD_SERVICE_NAMES[id] || id, url: f && f.mainsnak.datavalue ? f.mainsnak.datavalue.value : null };
       }
       return propInfo;
     }
@@ -149,8 +159,10 @@ var SOURCES = (function () {
       const s = await json(TVM + '/lookup/shows?imdb=' + imdb);
       if (!s) return null;
       const show = tvmazeShow(s);
-      const akas = await json(TVM + '/shows/' + s.id + '/akas').catch(() => []);
+      const [akas, full] = await Promise.all([json(TVM + '/shows/' + s.id + '/akas').catch(() => []), json(TVM + '/shows/' + s.id + '?embed=nextepisode').catch(() => null)]);
       show.akas = (akas || []).map(a => ({ name: a.name, where: a.country && a.country.code }));
+      const ne = full && full._embedded && full._embedded.nextepisode;
+      show.nextEpisode = ne ? { date: ne.airdate, season: ne.season, episode: ne.number, name: ne.name } : null;
       return show;
     }
 
@@ -168,7 +180,23 @@ var SOURCES = (function () {
       }));
     }
 
-    return { tmdb, wdSearch, wdEntities, wdLabels, wdServiceProps, tvmazeSearch, tvmazeByImdb, anilistSearch };
+    // Capas da Wikipédia (imagem principal do artigo). titles: [[língua, título]]. Devolve { 'língua:título': url }
+    async function wikiPosters(titles, size) {
+      const out = {};
+      for (const lang of ['en', 'pt']) {
+        const list = titles.filter(t => t[0] === lang).map(t => t[1]);
+        for (let i = 0; i < list.length; i += 50) {
+          const d = await json(`https://${lang}.wikipedia.org/w/api.php?action=query&prop=pageimages&piprop=thumbnail&pilicense=any&redirects=1&format=json&formatversion=2&origin=*&pithumbsize=${size || 342}&titles=` + encodeURIComponent(list.slice(i, i + 50).join('|')));
+          const q = (d && d.query) || {}, alias = {};
+          for (const n of (q.normalized || [])) alias[n.to] = n.from;
+          for (const n of (q.redirects || [])) alias[n.to] = alias[n.from] || n.from;
+          for (const p of (q.pages || [])) if (p.thumbnail) out[lang + ':' + (alias[p.title] || p.title)] = p.thumbnail.source;
+        }
+      }
+      return out;
+    }
+
+    return { tmdb, wikiPosters, wdSearch, wdEntities, wdLabels, wdServiceProps, tvmazeSearch, tvmazeByImdb, anilistSearch };
   }
   return { make, norm };
 })();

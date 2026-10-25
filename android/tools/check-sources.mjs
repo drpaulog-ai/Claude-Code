@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 
-const ctx = {};
+const ctx = { URL };
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(new URL('../app/src/main/assets/sources.js', import.meta.url), 'utf8') + ';this.SOURCES=SOURCES;', ctx);
 const SRC = ctx.SOURCES.make(fetch, { 'User-Agent': 'CapaDesfocada/1.0 (https://github.com/drpaulog-ai/Claude-Code)' });

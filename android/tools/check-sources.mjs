@@ -14,9 +14,11 @@ const pick = q => films.find(f => f.id === q);
 for (const q of ['Q44578', 'Q24871', 'Q47703', 'Q83495']) console.log(q, JSON.stringify(pick(q)));
 console.log('Com título em português:', films.filter(f => f.title !== f.en).length);
 
-const o = await SRC.oscars();
-console.log('Filmes com óscares:', Object.keys(o).length);
-console.log('Óscares: Titanic', o.Q44578, '(esperado 11) · Avatar', o.Q24871, '(3) · O Padrinho', o.Q47703, '(3) · Matrix', o.Q83495, '(4)');
+const o = ctx.SOURCES.oscarTable(films);
+const byN = {};
+for (const n of Object.values(o)) byN[n] = (byN[n] || 0) + 1;
+console.log(`Óscares: ${Object.keys(o).length} filmes da lista estão na tabela. Por número de óscares:`, JSON.stringify(byN));
+console.log('Titanic', o.Q44578, '· Matrix', o.Q83495, '· O Padrinho', o.Q47703);
 
 const st = await SRC.stats(['Q44578', 'Q24871', 'Q47703', 'Q83495']);
 console.log('Bilheteira/orçamento/duração:', JSON.stringify(st));

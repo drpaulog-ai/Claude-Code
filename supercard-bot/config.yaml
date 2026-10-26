@@ -1,0 +1,105 @@
+# Configuração do bot WWE SuperCard
+#
+# Como funciona: em cada ciclo o bot tira uma captura do ecrã e percorre as
+# regras de cima para baixo. A PRIMEIRA regra cuja imagem aparece no ecrã é
+# executada. Por isso, põe primeiro as regras mais específicas (pop-ups,
+# botões de fechar) e no fim as mais genéricas.
+#
+# As imagens (.png) ficam na pasta templates/ e são criadas por ti com
+# capturar.py, a partir do TEU telemóvel. Os nomes abaixo são exemplos:
+# muda-os para os que criares.
+#
+# Campos de cada regra:
+#   imagem:       ficheiro em templates/ (obrigatório)
+#   acao:         tocar | tocar_em | voltar | esperar | parar
+#                   tocar     -> toca no centro da imagem encontrada
+#                   tocar_em  -> toca na 'posicao' indicada (frações 0-1 do ecrã)
+#                   voltar    -> carrega no botão "voltar" do Android
+#                   esperar   -> não faz nada (ex.: ecrã de carregamento)
+#                   parar     -> termina a tarefa
+#   nome:         nome para aparecer no registo (opcional)
+#   posicao:      [x, y] para tocar_em, ex.: [0.5, 0.85] (vê com: capturar.py coordenadas)
+#   regiao:       [x1, y1, x2, y2] limita a procura a uma zona do ecrã (frações 0-1)
+#   limiar:       semelhança mínima 0-1 (por omissão o de 'geral')
+#   espera:       segundos de pausa depois da ação
+#   contar:       true -> conta uma repetição sempre que esta regra é executada
+#   max_vezes:    só executa esta regra no máximo N vezes
+#   confirmar:    (para 'parar') tem de aparecer N capturas seguidas antes de parar
+#   max_seguidas: se a mesma regra aparecer mais vezes seguidas, o bot para (preso)
+
+adb:
+  # Pasta platform-tools extraída dentro da pasta do bot. Se o adb estiver
+  # no PATH do Windows, também funciona.
+  caminho: platform-tools/adb.exe
+  # Só é preciso se tiveres mais de um telemóvel/emulador ligado (vê com 'adb devices')
+  dispositivo: null
+
+geral:
+  limiar: 0.85               # semelhança mínima para considerar que a imagem aparece
+  pausa: 1.5                 # segundos entre ciclos
+  tempo_max_desconhecido: 90 # para se nenhum ecrã for reconhecido durante este tempo
+  max_seguidas: 8            # para se a mesma regra se repetir demasiado (algo está preso)
+
+tarefas:
+
+  diarias:
+    descricao: Recolhe as recompensas diárias e fecha os pop-ups até ao menu principal
+    max_minutos: 10
+    regras:
+      - nome: Recolher recompensa
+        imagem: botao_recolher.png
+        acao: tocar
+        espera: 2.5
+      - nome: Confirmar
+        imagem: botao_ok.png
+        acao: tocar
+      - nome: Fechar pop-up
+        imagem: botao_fechar.png
+        acao: tocar
+      - nome: Carregamento
+        imagem: ecra_carregamento.png
+        acao: esperar
+      # Só termina quando o menu principal aparece 3 vezes seguidas sem pop-ups
+      - nome: Menu principal
+        imagem: menu_principal.png
+        acao: parar
+        confirmar: 3
+
+  evento:
+    descricao: Repete um evento até acabar a energia ou atingir as repetições
+    repeticoes: 20
+    max_minutos: 120
+    regras:
+      # Primeiro as condições de paragem
+      - nome: Sem energia
+        imagem: sem_energia.png
+        acao: parar
+      # Ecrãs de resultado (contam uma repetição)
+      - nome: Fim do combate
+        imagem: botao_continuar.png
+        acao: tocar
+        contar: true
+        espera: 3
+      - nome: Recolher prémio
+        imagem: botao_recolher.png
+        acao: tocar
+      - nome: Fechar pop-up
+        imagem: botao_fechar.png
+        acao: tocar
+      # Durante o combate: escolher a carta (ajusta a posição ao teu ecrã)
+      - nome: Escolher carta
+        imagem: ecra_escolher_carta.png
+        acao: tocar_em
+        posicao: [0.5, 0.80]
+        max_seguidas: 30
+      - nome: Lutar
+        imagem: botao_lutar.png
+        acao: tocar
+        espera: 3
+      - nome: Entrar no evento
+        imagem: botao_jogar_evento.png
+        acao: tocar
+        espera: 3
+      - nome: Carregamento
+        imagem: ecra_carregamento.png
+        acao: esperar

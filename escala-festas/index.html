@@ -1,0 +1,661 @@
+<title>Escala das Festas</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: assistente em 4 passos (abas no topo), coluna única de ~960px; a escala final é uma grelha dias × turnos */
+:root {
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --ink: #17202d;
+  --muted: #5a6577;
+  --line: #d6dce5;
+  --accent: #1d4e9e;
+  --accent-ink: #ffffff;
+  --accent-soft: #e2eaf7;
+  --natal: #a2343c;
+  --natal-soft: #f7e3e4;
+  --anonovo: #8a6210;
+  --anonovo-soft: #f6ecd6;
+  --warn: #9a4a00;
+  --warn-soft: #fdebd8;
+  --ok: #1d6b44;
+  --ok-soft: #dcf0e4;
+  --pill-l: 90%;
+  --pill-ink-l: 28%;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e131a; --surface: #161d27; --ink: #e5eaf1; --muted: #97a2b3; --line: #2a3443;
+    --accent: #7ea6f0; --accent-ink: #0e131a; --accent-soft: #1d2a40;
+    --natal: #ec8a90; --natal-soft: #3a1d21; --anonovo: #e3bb62; --anonovo-soft: #362a12;
+    --warn: #f3a35a; --warn-soft: #3a2614; --ok: #73cf9c; --ok-soft: #15301f;
+    --pill-l: 24%; --pill-ink-l: 84%;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e131a; --surface: #161d27; --ink: #e5eaf1; --muted: #97a2b3; --line: #2a3443;
+  --accent: #7ea6f0; --accent-ink: #0e131a; --accent-soft: #1d2a40;
+  --natal: #ec8a90; --natal-soft: #3a1d21; --anonovo: #e3bb62; --anonovo-soft: #362a12;
+  --warn: #f3a35a; --warn-soft: #3a2614; --ok: #73cf9c; --ok-soft: #15301f;
+  --pill-l: 24%; --pill-ink-l: 84%;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 64px;
+}
+.wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 22px; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(1.7rem, 4vw, 2.3rem); letter-spacing: -0.01em; }
+h2 { font-size: 1.3rem; }
+h3 { font-size: 1.02rem; }
+p { margin: 0; }
+.lede { color: var(--muted); max-width: 62ch; }
+header.top { display: grid; gap: 8px; }
+.eyebrow { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+/* passos */
+nav.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+nav.steps button {
+  all: unset; cursor: pointer; display: grid; gap: 2px; padding: 10px 12px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--muted); min-width: 0;
+}
+nav.steps button .n { font-family: var(--mono); font-size: 0.72rem; }
+nav.steps button .t { font-weight: 600; font-size: 0.9rem; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+nav.steps button[aria-current="step"] { border-color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
+nav.steps button[aria-current="step"] .n { color: var(--accent); }
+nav.steps button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 560px) { nav.steps button .t { font-size: 0.78rem; } nav.steps button { padding: 8px; } }
+
+section.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 22px; display: grid; gap: 20px; min-width: 0; }
+@media (max-width: 560px) { section.panel { padding: 16px; } }
+.panel-head { display: grid; gap: 6px; }
+.group { display: grid; gap: 10px; min-width: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.between { justify-content: space-between; }
+
+label.field { display: grid; gap: 4px; font-size: 0.82rem; color: var(--muted); font-weight: 500; }
+input[type="text"], input[type="number"], input[type="date"], input[type="time"], select {
+  font: inherit; font-size: 0.95rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 7px 9px; min-width: 0; width: 100%;
+}
+input[type="number"] { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+
+.btn {
+  font: inherit; font-weight: 600; font-size: 0.92rem; cursor: pointer; border-radius: 7px; padding: 9px 16px;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
+}
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn.quiet { background: transparent; border-color: var(--line); color: var(--ink); }
+.btn.small { padding: 5px 10px; font-size: 0.82rem; }
+.btn:focus-visible, .chip:focus-visible, .icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.icon-btn { font: inherit; cursor: pointer; border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 6px; width: 34px; height: 34px; flex: none; }
+.icon-btn:hover { color: var(--natal); border-color: var(--natal); }
+
+.list { display: grid; gap: 8px; }
+.item { display: grid; gap: 8px; align-items: end; padding: 10px; border: 1px solid var(--line); border-radius: 8px; }
+.day-item { grid-template-columns: 150px minmax(0, 1fr) 130px 34px; }
+.shift-item { grid-template-columns: minmax(0, 1fr) 110px 110px 34px; }
+@media (max-width: 640px) {
+  .day-item, .shift-item { grid-template-columns: 1fr 1fr; }
+  .day-item .icon-btn, .shift-item .icon-btn { justify-self: end; }
+}
+
+.tag { display: inline-block; font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; padding: 1px 7px; border-radius: 99px; }
+.tag.natal { color: var(--natal); background: var(--natal-soft); }
+.tag.anonovo { color: var(--anonovo); background: var(--anonovo-soft); }
+
+.scroll { overflow-x: auto; min-width: 0; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+td.num, th.num { text-align: center; }
+.need-table input { width: 72px; text-align: center; }
+.mono { font-family: var(--mono); }
+.muted { color: var(--muted); }
+.small { font-size: 0.82rem; }
+
+.emp { grid-template-columns: minmax(140px, 1.2fr) minmax(0, 2fr) 150px; align-items: center; }
+@media (max-width: 720px) { .emp { grid-template-columns: 1fr; } }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font: inherit; font-size: 0.8rem; cursor: pointer; padding: 4px 10px; border-radius: 99px;
+  border: 1px solid var(--line); background: transparent; color: var(--ink);
+}
+.chip[aria-pressed="true"] { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); text-decoration: line-through; }
+
+.rules { display: grid; gap: 12px; }
+.rule { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 16px; align-items: center; padding: 14px; border: 1px solid var(--line); border-radius: 8px; }
+.rule .what { display: grid; gap: 3px; min-width: 0; }
+.rule .what b { font-weight: 600; }
+.rule .what span { color: var(--muted); font-size: 0.86rem; }
+@media (max-width: 600px) { .rule { grid-template-columns: 1fr; } }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.stat { padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; display: grid; gap: 2px; }
+.stat .v { font-family: var(--mono); font-size: 1.35rem; font-weight: 500; }
+.stat .l { font-size: 0.8rem; color: var(--muted); }
+.stat.bad .v { color: var(--warn); }
+.stat.good .v { color: var(--ok); }
+
+.notice { padding: 10px 14px; border-radius: 8px; font-size: 0.9rem; border: 1px solid; }
+.notice.warn { background: var(--warn-soft); border-color: var(--warn); color: var(--ink); }
+.notice.ok { background: var(--ok-soft); border-color: var(--ok); color: var(--ink); }
+.notice ul { margin: 6px 0 0; padding-left: 18px; }
+
+.grid-table { min-width: 560px; }
+.grid-table th.dayh { min-width: 150px; }
+.grid-table th .d { font-family: var(--display); font-size: 1rem; color: var(--ink); display: block; }
+.grid-table td.shifth { white-space: nowrap; }
+.grid-table td.shifth b { display: block; }
+.pills { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.pill {
+  font-size: 0.84rem; padding: 2px 9px; border-radius: 5px; font-weight: 500;
+  background: hsl(var(--h) 55% var(--pill-l)); color: hsl(var(--h) 55% var(--pill-ink-l));
+}
+.pill.missing { background: var(--warn-soft); color: var(--warn); border: 1px dashed var(--warn); }
+.cell-off { color: var(--muted); font-size: 0.8rem; }
+.who td:first-child { font-weight: 600; white-space: nowrap; }
+
+.foot { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; }
+textarea#copyBox { width: 100%; min-height: 120px; font-family: var(--mono); font-size: 0.78rem; background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+.toast { font-size: 0.85rem; color: var(--ok); }
+@media (prefers-reduced-motion: no-preference) { section.panel { animation: rise .25s ease-out; } @keyframes rise { from { transform: translateY(4px); } to { transform: none; } } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <span class="eyebrow">Escala rotativa · Natal e Ano Novo</span>
+    <h1>Escala das Festas</h1>
+    <p class="lede">Responda às perguntas dos três primeiros passos: dias e turnos, equipa e regras. A aplicação distribui os turnos de forma equilibrada e alterna quem fez o Natal com quem fez o Ano Novo.</p>
+  </header>
+
+  <nav class="steps" aria-label="Passos">
+    <button type="button" data-step="0"><span class="n">Passo 1</span><span class="t">Dias</span></button>
+    <button type="button" data-step="1"><span class="n">Passo 2</span><span class="t">Equipa</span></button>
+    <button type="button" data-step="2"><span class="n">Passo 3</span><span class="t">Regras</span></button>
+    <button type="button" data-step="3"><span class="n">Passo 4</span><span class="t">Escala</span></button>
+  </nav>
+
+  <main id="app"></main>
+</div>
+
+<script>
+(() => {
+  const STORE_KEY = 'escala-festas-v1';
+  const BLOCKS = ['Natal', 'Ano Novo'];
+  const app = document.getElementById('app');
+  let step = 0;
+  let result = null;
+
+  const uid = () => Math.random().toString(36).slice(2, 9);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const toH = t => { const [h, m] = (t || '0:0').split(':').map(Number); return h + (m || 0) / 60; };
+  const dayNum = iso => Math.round(Date.parse(iso + 'T00:00:00Z') / 864e5);
+  const fmtDay = iso => {
+    const d = new Date(iso + 'T12:00:00');
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' });
+  };
+  const blockClass = b => (b === 'Natal' ? 'natal' : 'anonovo');
+
+  function defaults() {
+    const y = new Date().getFullYear();
+    const days = [
+      { id: uid(), date: `${y}-12-24`, name: 'Véspera de Natal', block: 'Natal' },
+      { id: uid(), date: `${y}-12-25`, name: 'Dia de Natal', block: 'Natal' },
+      { id: uid(), date: `${y}-12-30`, name: '30 de dezembro', block: 'Ano Novo' },
+      { id: uid(), date: `${y}-12-31`, name: 'Véspera de Ano Novo', block: 'Ano Novo' },
+    ];
+    const shifts = [
+      { id: uid(), name: 'Dia', start: '08:00', end: '20:00' },
+      { id: uid(), name: 'Noite', start: '20:00', end: '08:00' },
+    ];
+    const need = {};
+    days.forEach(d => { need[d.id] = { [shifts[0].id]: 3, [shifts[1].id]: 2 }; });
+    const employees = Array.from({ length: 10 }, (_, i) => ({ id: uid(), name: `Funcionário ${i + 1}`, off: [], last: '' }));
+    return {
+      days, shifts, need, employees,
+      rules: { onePerDay: true, minRest: 11, maxShifts: 0, maxConsec: 2, separate: 'prefer', rotate: true, balanceNights: true },
+    };
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return null;
+      const s = JSON.parse(raw);
+      return s && s.days && s.shifts && s.employees && s.rules ? s : null;
+    } catch (e) { return null; }
+  }
+  function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { /* armazenamento indisponível */ } }
+
+  let S = load() || defaults();
+  const getNeed = (dayId, shiftId) => Math.max(0, Number((S.need[dayId] || {})[shiftId]) || 0);
+  const sortDays = () => S.days.sort((a, b) => a.date.localeCompare(b.date));
+  const totalSlots = () => S.days.reduce((t, d) => t + S.shifts.reduce((u, sh) => u + getNeed(d.id, sh.id), 0), 0);
+
+  /* ---------- Passo 1: dias e turnos ---------- */
+  function renderDays() {
+    sortDays();
+    return `
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Que dias e turnos vai cobrir?</h2>
+          <p class="lede">Cada dia pertence a um bloco: Natal ou Ano Novo. Os blocos servem para as regras de alternância do passo 3.</p>
+        </div>
+        <div class="group">
+          <div class="row between"><h3>Dias</h3><button class="btn small ghost" data-act="add-day">Adicionar dia</button></div>
+          <div class="list">
+            ${S.days.map(d => `
+              <div class="item day-item" data-day="${d.id}">
+                <label class="field">Data<input type="date" id="dd-${d.id}" data-f="date" value="${esc(d.date)}"></label>
+                <label class="field">Nome<input type="text" id="dn-${d.id}" data-f="name" value="${esc(d.name)}"></label>
+                <label class="field">Bloco<select id="db-${d.id}" data-f="block">${BLOCKS.map(b => `<option ${b === d.block ? 'selected' : ''}>${b}</option>`).join('')}</select></label>
+                <button class="icon-btn" title="Remover dia" aria-label="Remover ${esc(d.name)}" data-act="del-day">×</button>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div class="group">
+          <div class="row between"><h3>Turnos</h3><button class="btn small ghost" data-act="add-shift">Adicionar turno</button></div>
+          <p class="small muted">Se a hora de fim for igual ou anterior à de início, o turno termina no dia seguinte (ex.: 20:00–08:00).</p>
+          <div class="list">
+            ${S.shifts.map(sh => `
+              <div class="item shift-item" data-shift="${sh.id}">
+                <label class="field">Nome do turno<input type="text" id="sn-${sh.id}" data-f="name" value="${esc(sh.name)}"></label>
+                <label class="field">Início<input type="time" id="ss-${sh.id}" data-f="start" value="${esc(sh.start)}"></label>
+                <label class="field">Fim<input type="time" id="se-${sh.id}" data-f="end" value="${esc(sh.end)}"></label>
+                <button class="icon-btn" title="Remover turno" aria-label="Remover turno ${esc(sh.name)}" data-act="del-shift">×</button>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div class="group">
+          <div class="row between">
+            <h3>Pessoas necessárias por turno</h3>
+            <div class="row"><input type="number" id="fillAll" min="0" value="2" style="width:72px" aria-label="Valor para todos"><button class="btn small quiet" data-act="fill-all">Aplicar a todos</button></div>
+          </div>
+          <div class="scroll">
+            <table class="need-table">
+              <thead><tr><th>Dia</th>${S.shifts.map(sh => `<th class="num">${esc(sh.name)}<br><span class="mono small">${esc(sh.start)}–${esc(sh.end)}</span></th>`).join('')}</tr></thead>
+              <tbody>
+                ${S.days.map(d => `<tr><td><b>${esc(fmtDay(d.date))}</b> <span class="tag ${blockClass(d.block)}">${esc(d.block)}</span></td>
+                  ${S.shifts.map(sh => `<td class="num"><input type="number" min="0" id="nd-${d.id}-${sh.id}" data-need="${d.id}|${sh.id}" value="${getNeed(d.id, sh.id)}" aria-label="${esc(d.name)}, ${esc(sh.name)}"></td>`).join('')}</tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+          <p class="small muted">Total a preencher: <b class="mono" id="slotTotal">${totalSlots()}</b> turnos.</p>
+        </div>
+        <div class="foot"><span></span><button class="btn" data-go="1">Seguinte: equipa</button></div>
+      </section>`;
+  }
+
+  /* ---------- Passo 2: equipa ---------- */
+  function renderTeam() {
+    sortDays();
+    return `
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Quem faz parte da equipa?</h2>
+          <p class="lede">Indique o número total de funcionários e substitua os nomes de exemplo. Marque os dias em que cada pessoa não pode trabalhar e o bloco que fez no ano passado.</p>
+        </div>
+        <div class="row">
+          <label class="field" style="width:200px">Número total de funcionários<input type="number" id="empCount" min="1" max="200" value="${S.employees.length}"></label>
+          <p class="small muted" style="max-width:48ch">Necessários no período: <b class="mono">${totalSlots()}</b> turnos, cerca de <b class="mono">${S.employees.length ? (totalSlots() / S.employees.length).toFixed(1) : '–'}</b> por pessoa.</p>
+        </div>
+        <div class="list">
+          ${S.employees.map((e, i) => `
+            <div class="item emp" data-emp="${e.id}">
+              <label class="field">Nome<input type="text" id="en-${e.id}" data-f="name" value="${esc(e.name)}" style="border-left:4px solid hsl(${hue(i)} 55% 50%)"></label>
+              <div class="field" style="display:grid;gap:4px"><span class="small muted" style="font-weight:500">Indisponível em</span>
+                <div class="chips">${S.days.map(d => `<button type="button" class="chip" data-off="${d.id}" aria-pressed="${e.off.includes(d.id)}">${esc(fmtDay(d.date))}</button>`).join('')}</div>
+              </div>
+              <label class="field">No ano passado fez
+                <select id="el-${e.id}" data-f="last">
+                  <option value="" ${!e.last ? 'selected' : ''}>Não sei / nenhum</option>
+                  ${BLOCKS.map(b => `<option ${e.last === b ? 'selected' : ''}>${b}</option>`).join('')}
+                </select>
+              </label>
+            </div>`).join('')}
+        </div>
+        <div class="foot"><button class="btn quiet" data-go="0">Anterior</button><button class="btn" data-go="2">Seguinte: regras</button></div>
+      </section>`;
+  }
+  const hue = i => (i * 137.508 + 210) % 360;
+
+  /* ---------- Passo 3: regras ---------- */
+  function renderRules() {
+    const R = S.rules;
+    const n = S.employees.length, slots = totalSlots();
+    const cap = R.maxShifts > 0 ? n * R.maxShifts : Infinity;
+    return `
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Que regras quer aplicar?</h2>
+          <p class="lede">As regras obrigatórias nunca são violadas: se não houver ninguém que as cumpra, o turno fica por preencher e é assinalado. As preferências são cumpridas sempre que possível.</p>
+        </div>
+        <div class="rules">
+          <div class="rule"><div class="what"><b>Um turno por dia, no máximo</b><span>Ninguém faz dois turnos na mesma data.</span></div>
+            <select id="r-onePerDay" data-rule="onePerDay" data-type="bool"><option value="1" ${R.onePerDay ? 'selected' : ''}>Obrigatório</option><option value="0" ${!R.onePerDay ? 'selected' : ''}>Não aplicar</option></select></div>
+          <div class="rule"><div class="what"><b>Descanso mínimo entre turnos (horas)</b><span>O Código do Trabalho prevê 11 horas seguidas. Impede, por exemplo, noite de 24 seguida de dia de 25.</span></div>
+            <input type="number" id="r-minRest" min="0" max="48" data-rule="minRest" value="${R.minRest}"></div>
+          <div class="rule"><div class="what"><b>Máximo de dias seguidos</b><span>Datas de calendário consecutivas com trabalho. 0 para não limitar.</span></div>
+            <input type="number" id="r-maxConsec" min="0" max="31" data-rule="maxConsec" value="${R.maxConsec}"></div>
+          <div class="rule"><div class="what"><b>Máximo de turnos por pessoa</b><span>0 para não limitar; a distribuição continua equilibrada.</span></div>
+            <input type="number" id="r-maxShifts" min="0" max="50" data-rule="maxShifts" value="${R.maxShifts}"></div>
+          <div class="rule"><div class="what"><b>Quem trabalha no Natal não trabalha no Ano Novo</b><span>Separa a equipa pelos dois blocos de festas.</span></div>
+            <select id="r-separate" data-rule="separate"><option value="strict" ${R.separate === 'strict' ? 'selected' : ''}>Obrigatório</option><option value="prefer" ${R.separate === 'prefer' ? 'selected' : ''}>Preferência</option><option value="off" ${R.separate === 'off' ? 'selected' : ''}>Não aplicar</option></select></div>
+          <div class="rule"><div class="what"><b>Rotação face ao ano passado</b><span>Quem fez o Natal no ano passado fica de preferência no Ano Novo, e vice-versa.</span></div>
+            <select id="r-rotate" data-rule="rotate" data-type="bool"><option value="1" ${R.rotate ? 'selected' : ''}>Preferência</option><option value="0" ${!R.rotate ? 'selected' : ''}>Não aplicar</option></select></div>
+          <div class="rule"><div class="what"><b>Distribuir as noites por igual</b><span>Evita que as mesmas pessoas fiquem com todos os turnos noturnos.</span></div>
+            <select id="r-balanceNights" data-rule="balanceNights" data-type="bool"><option value="1" ${R.balanceNights ? 'selected' : ''}>Preferência</option><option value="0" ${!R.balanceNights ? 'selected' : ''}>Não aplicar</option></select></div>
+        </div>
+        ${slots > cap ? `<div class="notice warn">Com ${n} pessoas e um máximo de ${R.maxShifts} turnos cada, só é possível cobrir ${cap} dos ${slots} turnos. Aumente o máximo ou o número de funcionários.</div>` : ''}
+        <div class="foot"><button class="btn quiet" data-go="1">Anterior</button><button class="btn" data-go="3">Criar escala</button></div>
+      </section>`;
+  }
+
+  /* ---------- Geração ---------- */
+  function mulberry32(a) {
+    return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  }
+
+  function buildSlots() {
+    const slots = [];
+    S.days.forEach(d => {
+      const dn = dayNum(d.date), base = dn * 24;
+      S.shifts.forEach((sh, si) => {
+        const st = toH(sh.start); let en = toH(sh.end); if (en <= st) en += 24;
+        const night = en > 24 || st < 6;
+        for (let k = 0; k < getNeed(d.id, sh.id); k++) slots.push({ dayId: d.id, shiftId: sh.id, si, dn, block: d.block, start: base + st, end: base + en, night });
+      });
+    });
+    return slots.sort((a, b) => a.start - b.start || a.si - b.si);
+  }
+
+  function longestRun(set) {
+    const arr = [...set].sort((a, b) => a - b); let best = 0, run = 0, prev = null;
+    for (const v of arr) { run = prev !== null && v === prev + 1 ? run + 1 : 1; best = Math.max(best, run); prev = v; }
+    return best;
+  }
+
+  // Divide a equipa pelos blocos antes de distribuir turnos, na proporção dos turnos de cada bloco.
+  // A rotação face ao ano passado e a disponibilidade decidem quem vai para onde; o resto é aleatório.
+  function assignHomeBlocks(people, slots, rng, other) {
+    const demand = { Natal: 0, 'Ano Novo': 0 };
+    slots.forEach(sl => { demand[sl.block]++; });
+    const total = demand.Natal + demand['Ano Novo'];
+    if (!total) return;
+    const exact = people.length * demand.Natal / total;
+    const target = { Natal: rng() < exact - Math.floor(exact) ? Math.ceil(exact) : Math.floor(exact) };
+    target['Ano Novo'] = people.length - target.Natal;
+    const daysOf = b => S.days.filter(d => d.block === b).map(d => d.id);
+    const freeIn = (p, b) => daysOf(b).filter(id => !p.e.off.includes(id)).length;
+    const want = p => {
+      const n = freeIn(p, 'Natal'), a = freeIn(p, 'Ano Novo');
+      if (n === 0 && a > 0) return 'Ano Novo';
+      if (a === 0 && n > 0) return 'Natal';
+      if (S.rules.rotate && p.e.last) return other(p.e.last);
+      return null;
+    };
+    const order = people.map(p => ({ p, w: want(p), r: rng() })).sort((x, y) => (y.w ? 1 : 0) - (x.w ? 1 : 0) || x.r - y.r);
+    const left = { ...target };
+    for (const { p, w } of order) {
+      const pick = w && left[w] > 0 ? w : left.Natal > 0 && (left['Ano Novo'] <= 0 || rng() < left.Natal / (left.Natal + left['Ano Novo'])) ? 'Natal' : 'Ano Novo';
+      p.home = pick; left[pick]--;
+    }
+  }
+
+  function attempt(slots, rng) {
+    const R = S.rules;
+    const people = S.employees.map(e => ({ e, shifts: [], nights: 0, dates: new Set(), blocks: new Set() }));
+    const other = b => (b === 'Natal' ? 'Ano Novo' : 'Natal');
+    if (R.separate !== 'off') assignHomeBlocks(people, slots, rng, other);
+    const can = (p, sl) => {
+      if (p.e.off.includes(sl.dayId)) return false;
+      if (R.onePerDay && p.dates.has(sl.dn)) return false;
+      if (R.maxShifts > 0 && p.shifts.length >= R.maxShifts) return false;
+      if (R.separate === 'strict' && p.home !== sl.block) return false;
+      for (const s of p.shifts) {
+        const gap = Math.max(sl.start - s.end, s.start - sl.end);
+        if (gap < 0 || gap < R.minRest) return false;
+      }
+      if (R.maxConsec > 0 && !p.dates.has(sl.dn)) {
+        const next = new Set(p.dates); next.add(sl.dn);
+        if (longestRun(next) > R.maxConsec) return false;
+      }
+      return true;
+    };
+    const cost = (p, sl) => {
+      let c = p.shifts.length * 10;
+      if (R.balanceNights && sl.night) c += p.nights * 6;
+      if (R.separate === 'prefer' && p.home !== sl.block) c += 25;
+      if (R.rotate && p.e.last) c += p.e.last === sl.block ? 18 : -4;
+      return c + rng() * 4;
+    };
+    const assign = slots.map(sl => {
+      let best = null, bc = Infinity;
+      for (const p of people) { if (!can(p, sl)) continue; const c = cost(p, sl); if (c < bc) { bc = c; best = p; } }
+      if (best) { best.shifts.push(sl); best.dates.add(sl.dn); best.blocks.add(sl.block); if (sl.night) best.nights++; }
+      return best ? best.e.id : null;
+    });
+    const variance = xs => { if (!xs.length) return 0; const m = xs.reduce((a, b) => a + b, 0) / xs.length; return xs.reduce((a, b) => a + (b - m) ** 2, 0) / xs.length; };
+    const unfilled = assign.filter(a => !a).length;
+    const both = people.filter(p => p.blocks.size > 1).length;
+    const repeat = people.filter(p => p.e.last && p.blocks.has(p.e.last)).length;
+    const score = unfilled * 1e4 + variance(people.map(p => p.shifts.length)) * 40
+      + (R.balanceNights ? variance(people.map(p => p.nights)) * 10 : 0)
+      + (R.separate === 'prefer' ? both * 25 : 0) + (R.rotate ? repeat * 15 : 0);
+    return { assign, score, unfilled, both, repeat };
+  }
+
+  function generate() {
+    const slots = buildSlots();
+    const rng = mulberry32((Date.now() ^ (Math.random() * 1e9)) >>> 0);
+    let best = null; const t0 = performance.now(); let tries = 0;
+    while (tries < 2000 && (tries < 50 || performance.now() - t0 < 350)) {
+      const r = attempt(slots, rng); tries++;
+      if (!best || r.score < best.score) best = r;
+    }
+    result = { slots, ...best, tries };
+  }
+
+  /* ---------- Passo 4: escala ---------- */
+  function renderSchedule() {
+    sortDays();
+    if (!result) generate();
+    const { slots, assign, unfilled, both, repeat } = result;
+    const empIdx = Object.fromEntries(S.employees.map((e, i) => [e.id, i]));
+    const byId = Object.fromEntries(S.employees.map(e => [e.id, e]));
+    const cell = {};
+    slots.forEach((sl, i) => { const k = sl.dayId + '|' + sl.shiftId; (cell[k] = cell[k] || []).push(assign[i]); });
+    const perEmp = Object.fromEntries(S.employees.map(e => [e.id, { total: 0, nights: 0, day: {} }]));
+    slots.forEach((sl, i) => {
+      const id = assign[i]; if (!id || !perEmp[id]) return;
+      const p = perEmp[id]; p.total++; if (sl.night) p.nights++;
+      const name = S.shifts.find(s => s.id === sl.shiftId)?.name || '';
+      p.day[sl.dayId] = p.day[sl.dayId] ? p.day[sl.dayId] + ' + ' + name : name;
+    });
+    const totals = S.employees.map(e => perEmp[e.id].total);
+    const min = totals.length ? Math.min(...totals) : 0, max = totals.length ? Math.max(...totals) : 0;
+    const filled = slots.length - unfilled;
+    const R = S.rules;
+
+    const missing = [];
+    S.days.forEach(d => S.shifts.forEach(sh => { const n = (cell[d.id + '|' + sh.id] || []).filter(x => !x).length; if (n) missing.push(`${fmtDay(d.date)}, ${sh.name}: falta${n > 1 ? 'm' : ''} ${n}`); }));
+    const notes = [];
+    if (R.separate === 'prefer' && both) notes.push(`${both} pessoa${both > 1 ? 's trabalham' : ' trabalha'} nos dois blocos (Natal e Ano Novo), porque não havia gente suficiente para os separar.`);
+    if (R.rotate && repeat) notes.push(`${repeat} pessoa${repeat > 1 ? 's repetem' : ' repete'} o bloco que fez no ano passado.`);
+
+    return `
+      <section class="panel">
+        <div class="panel-head">
+          <div class="row between"><h2>Escala gerada</h2>
+            <div class="row"><button class="btn quiet small" data-go="2">Rever regras</button><button class="btn small" data-act="regen">Gerar outra versão</button></div></div>
+          <p class="small muted">Melhor de ${result.tries} tentativas. Cada nova versão parte de uma ordem diferente; escolha a que preferir.</p>
+        </div>
+        <div class="stats">
+          <div class="stat ${unfilled ? 'bad' : 'good'}"><span class="v">${filled}/${slots.length}</span><span class="l">turnos preenchidos</span></div>
+          <div class="stat"><span class="v">${S.employees.length}</span><span class="l">funcionários</span></div>
+          <div class="stat ${max - min > 1 ? 'bad' : ''}"><span class="v">${min === max ? min : min + '–' + max}</span><span class="l">turnos por pessoa</span></div>
+          <div class="stat ${R.separate !== 'off' && both ? 'bad' : ''}"><span class="v">${both}</span><span class="l">nos dois blocos</span></div>
+        </div>
+        ${missing.length ? `<div class="notice warn"><b>Turnos por preencher.</b> Nenhuma pessoa disponível cumpre as regras obrigatórias. Aumente a equipa, reduza as necessidades ou alivie uma regra.<ul>${missing.map(m => `<li>${esc(m)}</li>`).join('')}</ul></div>` : `<div class="notice ok">Todos os turnos estão preenchidos e as regras obrigatórias são cumpridas.</div>`}
+        ${notes.length ? `<div class="notice warn"><ul style="margin:0">${notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>` : ''}
+
+        <div class="group">
+          <h3>Por turno</h3>
+          <div class="scroll">
+            <table class="grid-table">
+              <thead><tr><th>Turno</th>${S.days.map(d => `<th class="dayh"><span class="d">${esc(fmtDay(d.date))}</span>${esc(d.name)} <span class="tag ${blockClass(d.block)}">${esc(d.block)}</span></th>`).join('')}</tr></thead>
+              <tbody>
+                ${S.shifts.map(sh => `<tr><td class="shifth"><b>${esc(sh.name)}</b><span class="mono small muted">${esc(sh.start)}–${esc(sh.end)}</span></td>
+                  ${S.days.map(d => { const list = cell[d.id + '|' + sh.id] || [];
+                    if (!list.length) return '<td><span class="cell-off">—</span></td>';
+                    return `<td><div class="pills">${list.map(id => id && byId[id] ? `<span class="pill" style="--h:${hue(empIdx[id])}">${esc(byId[id].name)}</span>` : '<span class="pill missing">Por preencher</span>').join('')}</div></td>`; }).join('')}</tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="group">
+          <h3>Por funcionário</h3>
+          <div class="scroll">
+            <table class="who" style="min-width:520px">
+              <thead><tr><th>Nome</th>${S.days.map(d => `<th>${esc(fmtDay(d.date))}</th>`).join('')}<th class="num">Turnos</th><th class="num">Noites</th></tr></thead>
+              <tbody>
+                ${S.employees.map(e => { const p = perEmp[e.id];
+                  return `<tr><td><span class="pill" style="--h:${hue(empIdx[e.id])}">${esc(e.name)}</span></td>
+                    ${S.days.map(d => `<td>${p.day[d.id] ? esc(p.day[d.id]) : e.off.includes(d.id) ? '<span class="cell-off">Indisponível</span>' : '<span class="cell-off">Folga</span>'}</td>`).join('')}
+                    <td class="num mono">${p.total}</td><td class="num mono">${p.nights}</td></tr>`; }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="group">
+          <div class="row between"><h3>Copiar para Excel ou e-mail</h3><div class="row"><span class="toast" id="toast" aria-live="polite"></span><button class="btn small" data-act="copy">Copiar escala</button></div></div>
+          <textarea id="copyBox" readonly aria-label="Escala em texto">${esc(asText(cell, byId, perEmp))}</textarea>
+        </div>
+        <div class="foot"><button class="btn quiet" data-go="2">Anterior</button><button class="btn ghost" data-act="reset">Recomeçar com valores de exemplo</button></div>
+      </section>`;
+  }
+
+  function asText(cell, byId, perEmp) {
+    const lines = [['Turno', ...S.days.map(d => `${fmtDay(d.date)} (${d.name})`)].join('\t')];
+    S.shifts.forEach(sh => lines.push([`${sh.name} ${sh.start}-${sh.end}`, ...S.days.map(d => (cell[d.id + '|' + sh.id] || []).map(id => (id && byId[id] ? byId[id].name : 'POR PREENCHER')).join(', '))].join('\t')));
+    lines.push('', ['Nome', ...S.days.map(d => fmtDay(d.date)), 'Turnos', 'Noites'].join('\t'));
+    S.employees.forEach(e => { const p = perEmp[e.id]; lines.push([e.name, ...S.days.map(d => p.day[d.id] || (e.off.includes(d.id) ? 'Indisponível' : 'Folga')), p.total, p.nights].join('\t')); });
+    return lines.join('\n');
+  }
+
+  /* ---------- Render e eventos ---------- */
+  function render() {
+    document.querySelectorAll('nav.steps button').forEach(b => {
+      if (Number(b.dataset.step) === step) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current');
+    });
+    app.innerHTML = [renderDays, renderTeam, renderRules, renderSchedule][step]();
+  }
+  function go(n) { if (n === 3) result = null; step = n; render(); window.scrollTo({ top: 0 }); }
+
+  function setEmpCount(n) {
+    n = Math.max(1, Math.min(200, Math.floor(n) || 1));
+    while (S.employees.length < n) S.employees.push({ id: uid(), name: `Funcionário ${S.employees.length + 1}`, off: [], last: '' });
+    S.employees.length = n;
+  }
+
+  document.querySelector('nav.steps').addEventListener('click', e => { const b = e.target.closest('button[data-step]'); if (b) go(Number(b.dataset.step)); });
+
+  app.addEventListener('click', async e => {
+    const t = e.target.closest('button'); if (!t) return;
+    if (t.dataset.go) return go(Number(t.dataset.go));
+    if (t.dataset.off) {
+      const emp = S.employees.find(x => x.id === t.closest('[data-emp]').dataset.emp);
+      const on = emp.off.includes(t.dataset.off);
+      emp.off = on ? emp.off.filter(x => x !== t.dataset.off) : [...emp.off, t.dataset.off];
+      t.setAttribute('aria-pressed', String(!on)); save(); return;
+    }
+    switch (t.dataset.act) {
+      case 'add-day': {
+        const last = S.days[S.days.length - 1];
+        const date = last ? new Date(Date.parse(last.date + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10) : `${new Date().getFullYear()}-12-24`;
+        const d = { id: uid(), date, name: 'Novo dia', block: 'Ano Novo' };
+        S.days.push(d); S.need[d.id] = Object.fromEntries(S.shifts.map(sh => [sh.id, 2])); break;
+      }
+      case 'del-day': {
+        const id = t.closest('[data-day]').dataset.day;
+        S.days = S.days.filter(d => d.id !== id); delete S.need[id];
+        S.employees.forEach(emp => { emp.off = emp.off.filter(x => x !== id); }); break;
+      }
+      case 'add-shift': {
+        const sh = { id: uid(), name: 'Novo turno', start: '08:00', end: '16:00' };
+        S.shifts.push(sh); S.days.forEach(d => { (S.need[d.id] = S.need[d.id] || {})[sh.id] = 1; }); break;
+      }
+      case 'del-shift': {
+        const id = t.closest('[data-shift]').dataset.shift;
+        S.shifts = S.shifts.filter(s => s.id !== id); S.days.forEach(d => { if (S.need[d.id]) delete S.need[d.id][id]; }); break;
+      }
+      case 'fill-all': {
+        const v = Math.max(0, Number(document.getElementById('fillAll').value) || 0);
+        S.days.forEach(d => { S.need[d.id] = Object.fromEntries(S.shifts.map(sh => [sh.id, v])); }); break;
+      }
+      case 'regen': result = null; break;
+      case 'reset': S = defaults(); result = null; save(); step = 0; render(); return;
+      case 'copy': {
+        const box = document.getElementById('copyBox'), toast = document.getElementById('toast');
+        try { await navigator.clipboard.writeText(box.value); toast.textContent = 'Copiado. Cole numa folha de cálculo.'; }
+        catch (err) { box.focus(); box.select(); toast.textContent = 'Texto selecionado: use Ctrl+C / ⌘C.'; }
+        return;
+      }
+      default: return;
+    }
+    save(); render();
+  });
+
+  app.addEventListener('input', e => {
+    const el = e.target;
+    if (el.dataset.need) {
+      const [d, s] = el.dataset.need.split('|');
+      (S.need[d] = S.need[d] || {})[s] = Math.max(0, Number(el.value) || 0);
+      const tot = document.getElementById('slotTotal'); if (tot) tot.textContent = totalSlots();
+    } else if (el.dataset.rule && el.type === 'number') {
+      S.rules[el.dataset.rule] = Math.max(0, Number(el.value) || 0);
+    } else if (el.dataset.f && el.type === 'text') {
+      const host = el.closest('[data-day],[data-shift],[data-emp]');
+      const list = host.dataset.day ? S.days : host.dataset.shift ? S.shifts : S.employees;
+      const obj = list.find(x => x.id === (host.dataset.day || host.dataset.shift || host.dataset.emp));
+      if (obj) obj[el.dataset.f] = el.value;
+    } else return;
+    save();
+  });
+
+  app.addEventListener('change', e => {
+    const el = e.target;
+    if (el.id === 'empCount') { setEmpCount(Number(el.value)); save(); render(); return; }
+    if (el.dataset.rule && el.tagName === 'SELECT') {
+      S.rules[el.dataset.rule] = el.dataset.type === 'bool' ? el.value === '1' : el.value; save();
+      if (step === 2) render();
+      return;
+    }
+    if (el.dataset.rule) { save(); if (step === 2) render(); return; }
+    if (el.dataset.f && el.type !== 'text') {
+      const host = el.closest('[data-day],[data-shift],[data-emp]');
+      const list = host.dataset.day ? S.days : host.dataset.shift ? S.shifts : S.employees;
+      const obj = list.find(x => x.id === (host.dataset.day || host.dataset.shift || host.dataset.emp));
+      if (obj && el.value !== '') obj[el.dataset.f] = el.value;
+      save(); render();
+    }
+  });
+
+  render();
+})();
+</script>

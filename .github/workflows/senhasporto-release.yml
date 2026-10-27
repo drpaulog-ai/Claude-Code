@@ -1,9 +1,11 @@
 name: SenhasPorto – release
 
+# Para publicar uma nova versão: alterar SenhasPorto/VERSION e fazer push.
 on:
   push:
-    tags:
-      - 'senhasporto-v*'
+    paths:
+      - 'SenhasPorto/VERSION'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -26,6 +28,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          $version = (Get-Content SenhasPorto/VERSION -Raw).Trim()
+          $tag = "senhasporto-v$version"
           $notes = @"
           Senhas Porto – app portable para Windows 10/11 (64-bit).
 
@@ -37,7 +41,8 @@ jobs:
 
           Mais detalhes em ``LEIA-ME.md``.
           "@
-          gh release create "$env:GITHUB_REF_NAME" `
+          gh release create $tag `
             publish/SenhasPorto.exe SenhasPorto/LEIA-ME.md `
-            --title "Senhas Porto $($env:GITHUB_REF_NAME -replace '^senhasporto-','')" `
+            --target $env:GITHUB_SHA `
+            --title "Senhas Porto v$version" `
             --notes $notes

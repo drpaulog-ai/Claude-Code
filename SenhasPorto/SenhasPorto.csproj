@@ -9,7 +9,7 @@
     <RootNamespace>SenhasPorto</RootNamespace>
     <AssemblyName>SenhasPorto</AssemblyName>
     <Product>Senhas Porto</Product>
-    <Version>1.0.0</Version>
+    <Version>$([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)/VERSION').Trim())</Version>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
 
     <!-- Portable: um único .exe que não precisa de instalação nem de .NET instalado -->

@@ -9,7 +9,8 @@ e tem botões para **tirar senha digital** em cada um.
 
 ## Como usar
 
-1. Descarregue `SenhasPorto.exe` (separador *Actions* do GitHub → última execução de
+1. Descarregue `SenhasPorto.exe` da página **Releases** do repositório (ou, para versões de
+   desenvolvimento, do separador *Actions* → última execução de
    "SenhasPorto – build Windows portable" → artefacto `SenhasPorto-win-x64-portable`).
 2. Coloque-o numa pasta qualquer (ou numa pen USB) e faça duplo clique. Não precisa de instalação.
 3. O separador **Resumo** mostra, para cada local, o total e o número em espera por balcão/serviço.

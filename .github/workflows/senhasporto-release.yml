@@ -1,0 +1,43 @@
+name: SenhasPorto – release
+
+on:
+  push:
+    tags:
+      - 'senhasporto-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publicar .exe portable (win-x64, ficheiro único)
+        run: dotnet publish SenhasPorto/SenhasPorto.csproj -c Release -o publish
+
+      - name: Criar release no GitHub
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = @"
+          Senhas Porto – app portable para Windows 10/11 (64-bit).
+
+          Mostra quantas senhas estão em espera na Loja do Cidadão do Porto e no IEFP – Serviço de Emprego do Porto, com botões para tirar senha digital.
+
+          **Como usar:** descarregue ``SenhasPorto.exe``, coloque-o numa pasta (ou pen USB) e faça duplo clique. Não precisa de instalação. Requer o Microsoft Edge WebView2 Runtime (já incluído no Windows 11).
+
+          O Windows SmartScreen pode avisar que a app não é reconhecida (não está assinada digitalmente): clique em "Mais informações" → "Executar mesmo assim".
+
+          Mais detalhes em ``LEIA-ME.md``.
+          "@
+          gh release create "$env:GITHUB_REF_NAME" `
+            publish/SenhasPorto.exe SenhasPorto/LEIA-ME.md `
+            --title "Senhas Porto $($env:GITHUB_REF_NAME -replace '^senhasporto-','')" `
+            --notes $notes

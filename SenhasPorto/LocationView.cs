@@ -182,7 +182,7 @@ public sealed class LocationView
             {
                 try
                 {
-                    if (!frame.IsDestroyed())
+                    if (frame.IsDestroyed() == 0)
                         clicked |= Parse(await frame.ExecuteScriptAsync(_script), items);
                 }
                 catch

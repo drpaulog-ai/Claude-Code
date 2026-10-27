@@ -1,0 +1,62 @@
+name: SenhasPorto – APK Android
+
+# Compila a APK a cada alteração. Quando SenhasPortoAndroid/VERSION tem uma versão nova,
+# cria também a release "senhasporto-android-v<versão>" com a APK.
+on:
+  push:
+    paths:
+      - 'SenhasPortoAndroid/**'
+      - 'SenhasPorto/js/**'
+      - '.github/workflows/senhasporto-android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: SenhasPortoAndroid
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Compilar APK
+        run: |
+          ./gradlew assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk "SenhasPorto-$(cat VERSION).apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SenhasPorto-android-apk
+          path: SenhasPortoAndroid/SenhasPorto-*.apk
+          if-no-files-found: error
+
+      - name: Criar release (se a versão for nova)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(cat VERSION)
+          tag="senhasporto-android-v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag já existe; nada a fazer."
+            exit 0
+          fi
+          notes=$(cat <<'NOTES'
+          Senhas Porto para Android (8.0 ou superior).
+
+          Mostra quantas senhas estão em espera na Loja do Cidadão do Porto e no IEFP – Serviço de Emprego do Porto, com botões para tirar senha digital.
+
+          **Como instalar:** descarregue o ficheiro `.apk` no telemóvel e abra-o. Se o Android pedir, autorize a instalação de apps desta origem (navegador ou gestor de ficheiros). Pode aparecer um aviso do Play Protect por a app não vir da Play Store: escolha "Instalar mesmo assim".
+          NOTES
+          )
+          gh release create "$tag" "SenhasPorto-$version.apk" \
+            --target "$GITHUB_SHA" \
+            --title "Senhas Porto Android v$version" \
+            --notes "$notes"

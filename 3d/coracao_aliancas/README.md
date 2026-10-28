@@ -17,7 +17,7 @@ duas alianças entrelaçadas gravadas com nomes, e base com placa e data.
 
 ```bash
 pip install manifold3d trimesh shapely matplotlib numpy scipy
-python3 gerar_stl.py "JACK" "EMILY" "Together Forever" "2026.02.14"
+python3 gerar_stl.py "PAULO" "ANA" "Together Forever" "2026.02.14"
 ```
 
 ## Impressão

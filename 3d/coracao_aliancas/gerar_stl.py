@@ -15,8 +15,8 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.textpath import TextPath
 from shapely.geometry import Polygon
 
-NOME1 = sys.argv[1] if len(sys.argv) > 1 else "JACK"
-NOME2 = sys.argv[2] if len(sys.argv) > 2 else "EMILY"
+NOME1 = sys.argv[1] if len(sys.argv) > 1 else "PAULO"
+NOME2 = sys.argv[2] if len(sys.argv) > 2 else "ANA"
 FRASE = sys.argv[3] if len(sys.argv) > 3 else "Together Forever"
 DATA = sys.argv[4] if len(sys.argv) > 4 else "2026.02.14"
 FONTE = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"

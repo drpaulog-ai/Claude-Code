@@ -1,7 +1,7 @@
 # Coração com alianças — "Together Forever"
 
 Modelo 3D imprimível inspirado na foto: fatia de tronco com casca e coração vazado,
-duas alianças entrelaçadas gravadas com nomes, e base com placa e data.
+duas alianças entrelaçadas gravadas com nomes, e base com placa com o símbolo do infinito e a data (a frase pode ser texto ou "∞").
 
 | Ficheiro | Conteúdo |
 |---|---|
@@ -17,7 +17,7 @@ duas alianças entrelaçadas gravadas com nomes, e base com placa e data.
 
 ```bash
 pip install manifold3d trimesh shapely matplotlib numpy scipy
-python3 gerar_stl.py "PAULO" "ANA" "Together Forever" "2026.02.14"
+python3 gerar_stl.py "PAULO" "ANA" "∞" "1999.07.11"
 ```
 
 ## Impressão

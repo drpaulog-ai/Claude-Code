@@ -13,12 +13,12 @@ import trimesh
 from manifold3d import CrossSection, FillRule, Manifold, OpType
 from matplotlib.font_manager import FontProperties
 from matplotlib.textpath import TextPath
-from shapely.geometry import Polygon
+from shapely.geometry import LineString, Polygon
 
 NOME1 = sys.argv[1] if len(sys.argv) > 1 else "PAULO"
 NOME2 = sys.argv[2] if len(sys.argv) > 2 else "ANA"
-FRASE = sys.argv[3] if len(sys.argv) > 3 else "Together Forever"
-DATA = sys.argv[4] if len(sys.argv) > 4 else "2026.02.14"
+FRASE = sys.argv[3] if len(sys.argv) > 3 else "∞"   # "∞" desenha o simbolo do infinito
+DATA = sys.argv[4] if len(sys.argv) > 4 else "1999.07.11"
 FONTE = "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
 
 rng = np.random.default_rng(7)
@@ -43,6 +43,18 @@ def texto_2d(txt, altura, centro=(0.0, 0.0)):
             pts = np.asarray(anel.coords)[:-1]
             contornos.append(((pts - [cx, cy]) * k + centro).tolist())
     return CrossSection(contornos, FillRule.EvenOdd)
+
+
+def simbolo_infinito(largura, traco, centro=(0.0, 0.0)):
+    """Lemniscata de Bernoulli com traco de espessura `traco`."""
+    a = largura / 2 - traco / 2
+    u = np.linspace(0, 2 * np.pi, 400)
+    x = a * np.cos(u) / (1 + np.sin(u) ** 2)
+    y = a * np.sin(u) * np.cos(u) / (1 + np.sin(u) ** 2)
+    forma = LineString(np.c_[x, y]).buffer(traco / 2, quad_segs=16)
+    contornos = [np.asarray(anel.coords)[:-1] + centro
+                 for anel in [forma.exterior, *forma.interiors]]
+    return CrossSection([c.tolist() for c in contornos], FillRule.EvenOdd)
 
 
 def poligono(pts):
@@ -83,7 +95,11 @@ placa = extrudir_y(poligono(placa_pts).translate((0, zc)), frente - PL_E, frente
 moldura = extrudir_y(
     poligono(placa_pts).translate((0, zc)) - poligono(placa_pts).offset(-1.4).translate((0, zc)),
     frente - PL_E - 0.6, frente - PL_E + 0.1)
-letras = texto_2d(FRASE, 5.2, (0, zc + 3.6)) + texto_2d(DATA, 4.4, (0, zc - 4.6))
+if FRASE == "∞":
+    frase_cs = simbolo_infinito(26, 1.8, (0, zc + 3.4))
+else:
+    frase_cs = texto_2d(FRASE, 5.2, (0, zc + 3.6))
+letras = frase_cs + texto_2d(DATA, 4.4, (0, zc - 4.6))
 letras_3d = extrudir_y(letras, frente - PL_E - 0.8, frente - PL_E + 0.1)
 base_completa = base + placa + moldura + letras_3d
 

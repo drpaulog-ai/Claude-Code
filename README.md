@@ -35,7 +35,7 @@ O código está em `core/` (Kotlin puro, com testes) e é independente do Androi
 
 ## Instalar
 
-O GitHub Actions compila a app a cada push: abra o separador **Actions → Android APK → (última execução) → Artifacts**, descarregue `conselheiro-investimentos-apk`, copie o `app-release.apk` para o telemóvel e instale-o (é preciso permitir “instalar apps de origem desconhecida”).
+O GitHub Actions compila a app a cada push: abra o separador **Actions → Investimentos – APK Android → (última execução) → Artifacts**, descarregue `conselheiro-investimentos-apk`, copie o `app-release.apk` para o telemóvel e instale-o (é preciso permitir “instalar apps de origem desconhecida”).
 
 ## Compilar localmente
 

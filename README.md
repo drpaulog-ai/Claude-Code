@@ -35,7 +35,11 @@ O código está em `core/` (Kotlin puro, com testes) e é independente do Androi
 
 ## Instalar
 
-O GitHub Actions compila a app a cada push: abra o separador **Actions → Investimentos – APK Android → (última execução) → Artifacts**, descarregue `conselheiro-investimentos-apk`, copie o `app-release.apk` para o telemóvel e instale-o (é preciso permitir “instalar apps de origem desconhecida”).
+Descarregue diretamente no telemóvel:
+
+**https://github.com/drpaulog-ai/Claude-Code/releases/download/investimentos-latest/conselheiro-investimentos.apk**
+
+e abra o ficheiro para instalar (é preciso permitir “instalar apps de origem desconhecida”). O GitHub Actions recompila e atualiza este link a cada push.
 
 ## Compilar localmente
 

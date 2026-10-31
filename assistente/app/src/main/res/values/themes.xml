@@ -1,0 +1,6 @@
+<resources>
+    <style name="Theme.Assistente" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
+    <color name="ic_background">#1F3A5F</color>
+</resources>

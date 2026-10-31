@@ -11,9 +11,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Assistente">
 
-        <!-- Necessário para usar a GPU no modelo local (MediaPipe) -->
+        <!-- Necessário para usar a GPU no modelo local (LiteRT-LM) -->
+        <uses-native-library android:name="libvndksupport.so" android:required="false" />
         <uses-native-library android:name="libOpenCL.so" android:required="false" />
-        <uses-native-library android:name="libOpenCL-pixel.so" android:required="false" />
 
         <activity
             android:name=".MainActivity"

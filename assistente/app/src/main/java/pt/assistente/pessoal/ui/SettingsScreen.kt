@@ -97,15 +97,15 @@ fun SettingsScreen(vm: ChatViewModel, onBack: () -> Unit) {
             Text(vm.localStatus, style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { picker.launch(arrayOf("*/*")) }, enabled = !vm.localBusy) {
-                    Text("Importar ficheiro .task")
+                    Text("Importar modelo")
                 }
                 OutlinedButton(onClick = { vm.loadLocal() }, enabled = !vm.localBusy) {
                     Text("Recarregar")
                 }
             }
             Hint(
-                "Descarrega um modelo Gemma em formato .task (MediaPipe/LiteRT) do Hugging Face " +
-                    "para a pasta Transferências e importa-o aqui. O ficheiro é copiado para a app."
+                "Descarrega do Hugging Face (litert-community) um modelo Gemma em formato .litertlm " +
+                    "e importa-o aqui. O ficheiro é copiado para a app."
             )
 
             HorizontalDivider()

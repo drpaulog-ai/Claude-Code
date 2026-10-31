@@ -4,7 +4,7 @@ App de IA pessoal que corre **localmente no telemóvel** e recorre à nuvem só 
 
 ## Como decide quem responde (modo Automático)
 
-1. O **modelo local** (Gemma, via MediaPipe) responde primeiro e dá uma nota de confiança (0–10).
+1. O **modelo local** (Gemma, via Google LiteRT-LM) responde primeiro e dá uma nota de confiança (0–10).
 2. Se a pergunta precisar de informação atual (notícias, preços, meteorologia…) ou a confiança
    for **baixa** (< 5 por defeito) → a **nuvem responde**.
 3. Confiança **média** (5–7) → a nuvem **valida** a resposta local e corrige-a se for preciso.
@@ -25,10 +25,10 @@ Há também os modos **Só local** (nada sai do telemóvel) e **Só nuvem**.
 ## Modelo local
 
 1. No [Hugging Face](https://huggingface.co/litert-community), procura um modelo Gemma em formato
-   **`.task`** (ex.: Gemma 3 1B para rapidez; Gemma 3n E4B ou Gemma 3 4B para melhor qualidade).
-   Pode ser preciso criar conta e aceitar a licença do Gemma.
+   **`.litertlm`** (ex.: Gemma 3 1B para rapidez; Gemma 3n E4B para melhor qualidade).
+   Pode ser preciso criar conta e aceitar a licença do Gemma. Ficheiros `.task` também funcionam.
 2. Descarrega o ficheiro para o telemóvel.
-3. Na app: **Definições → Importar ficheiro .task**. O modelo fica carregado e volta a carregar
+3. Na app: **Definições → Importar modelo**. O modelo fica carregado e volta a carregar
    sozinho sempre que abres a app.
 
 ## Chaves de API (nuvem)

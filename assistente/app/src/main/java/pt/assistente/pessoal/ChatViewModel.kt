@@ -106,7 +106,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
             localStatus = try {
                 local.load()
                 val mb = local.modelFile.length() / (1024 * 1024)
-                "Modelo local pronto ($mb MB)."
+                "Modelo local pronto ($mb MB, ${local.backendName})."
             } catch (e: CancellationException) {
                 throw e
             } catch (e: IllegalStateException) {

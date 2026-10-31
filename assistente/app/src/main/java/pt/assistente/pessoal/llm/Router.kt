@@ -44,7 +44,7 @@ class Router(private val local: LocalLlm, private val settings: SettingsStore) {
 
         onStatus("A pensar localmente…")
         val raw = try {
-            local.generate(buildLocalPrompt(history))
+            local.generate(LOCAL_SYSTEM + dateLine(), localTurns(history))
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -140,20 +140,9 @@ class Router(private val local: LocalLlm, private val settings: SettingsStore) {
         return RouterResult(parsed.answer, localLabel(parsed) + " · não validado (nuvem indisponível)")
     }
 
-    private fun buildLocalPrompt(history: List<ChatMessage>): String {
-        // Formato de conversa do Gemma; o modelo local só vê as últimas mensagens.
-        val turns = normalize(history.takeLast(MAX_LOCAL_HISTORY))
-        val sb = StringBuilder()
-        turns.forEachIndexed { i, m ->
-            val role = if (m.role == Role.USER) "user" else "model"
-            val text = m.text.take(1500)
-            sb.append("<start_of_turn>").append(role).append('\n')
-            if (i == 0) sb.append(LOCAL_SYSTEM).append(dateLine()).append("\n\n")
-            sb.append(text).append("<end_of_turn>\n")
-        }
-        sb.append("<start_of_turn>model\n")
-        return sb.toString()
-    }
+    /** O modelo local só vê as últimas mensagens (e cada uma cortada), para ser rápido. */
+    private fun localTurns(history: List<ChatMessage>): List<ChatMessage> =
+        normalize(history.takeLast(MAX_LOCAL_HISTORY)).map { it.copy(text = it.text.take(1500)) }
 
     private fun localLabel(p: LocalParse) =
         if (p.confidence != null) "Local · confiança ${p.confidence}/10" else "Local"

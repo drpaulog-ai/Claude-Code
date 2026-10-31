@@ -109,8 +109,10 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                 "Modelo local pronto ($mb MB)."
             } catch (e: CancellationException) {
                 throw e
+            } catch (e: IllegalStateException) {
+                e.message ?: "Erro ao carregar o modelo."
             } catch (e: Throwable) {
-                "Erro ao carregar o modelo: ${e.message}"
+                "Erro ao carregar o modelo: ${e.message?.substringBefore("===")?.trim()}"
             }
             localBusy = false
         }

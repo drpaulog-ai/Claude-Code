@@ -49,10 +49,36 @@ class LocalLlm(private val context: Context) {
         if (!tmp.renameTo(modelFile)) error("Falha ao guardar o modelo")
     }
 
+    /**
+     * Verifica o início do ficheiro: um .task do MediaPipe é um arquivo zip ("PK").
+     * Devolve uma explicação em português se o ficheiro não for utilizável, ou null se parecer válido.
+     */
+    fun diagnoseModelFile(): String? {
+        if (!hasModelFile()) return "Nenhum modelo importado."
+        val header = ByteArray(16)
+        val n = modelFile.inputStream().use { it.read(header) }
+        val mb = modelFile.length() / (1024 * 1024)
+        val text = String(header, 0, maxOf(n, 0), Charsets.ISO_8859_1)
+        return when {
+            n >= 2 && header[0] == 'P'.code.toByte() && header[1] == 'K'.code.toByte() -> null
+            text.startsWith("LITERTLM") ->
+                "O ficheiro importado ($mb MB) é do formato .litertlm, que esta versão da app ainda não suporta. " +
+                    "No Hugging Face escolhe o ficheiro que termina em .task."
+            text.trimStart().startsWith("<") || text.trimStart().startsWith("{") ->
+                "O ficheiro importado ($mb MB) é uma página web/mensagem de erro, não um modelo. " +
+                    "Normalmente acontece quando o download exige sessão iniciada no Hugging Face e aceitar a licença do Gemma. " +
+                    "Inicia sessão, aceita a licença na página do modelo e descarrega de novo o ficheiro .task."
+            else ->
+                "O ficheiro importado ($mb MB) não é um modelo .task válido (talvez seja de outro formato, " +
+                    "como .gguf ou .tflite, ou o download ficou incompleto). Descarrega de novo um ficheiro .task."
+        }
+    }
+
     suspend fun load() = withContext(Dispatchers.Default) {
         mutex.withLock {
             engine?.close()
             engine = null
+            diagnoseModelFile()?.let { throw IllegalStateException(it) }
             val options = LlmInference.LlmInferenceOptions.builder()
                 .setModelPath(modelFile.absolutePath)
                 .setMaxTokens(4096)

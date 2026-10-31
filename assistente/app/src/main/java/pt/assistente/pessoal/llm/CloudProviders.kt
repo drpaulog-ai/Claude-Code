@@ -39,6 +39,16 @@ private fun postJson(url: String, headers: Map<String, String>, body: JSONObject
     }
 }
 
+private fun getJson(url: String, headers: Map<String, String>): JSONObject {
+    val builder = Request.Builder().url(url).get()
+    headers.forEach { (k, v) -> builder.header(k, v) }
+    http.newCall(builder.build()).execute().use { resp ->
+        val text = resp.body?.string().orEmpty()
+        if (!resp.isSuccessful) throw CloudException("HTTP ${resp.code}: ${text.take(300)}", resp.code)
+        return JSONObject(text)
+    }
+}
+
 /** Junta mensagens seguidas do mesmo papel e garante que a conversa começa pelo utilizador. */
 internal fun normalize(history: List<ChatMessage>): List<ChatMessage> {
     val out = mutableListOf<ChatMessage>()
@@ -127,6 +137,40 @@ class GeminiProvider(private val s: SettingsStore) : CloudProvider {
 
     override suspend fun complete(system: String, history: List<ChatMessage>, webSearch: Boolean): String =
         withContext(Dispatchers.IO) {
+            try {
+                request(system, history, webSearch)
+            } catch (e: CloudException) {
+                if ((e.code == 400 || e.code == 404) && e.message.orEmpty().contains("model", ignoreCase = true)) {
+                    throw CloudException(
+                        "O modelo \"${s.geminiModel}\" não existe ou não está disponível para esta chave. " +
+                            "Copia um destes para Definições → Modelo Gemini: ${availableModels()}",
+                        e.code,
+                    )
+                }
+                throw e
+            }
+        }
+
+    /** Lista os modelos de texto disponíveis para a chave (os "flash" primeiro). */
+    private fun availableModels(): String = try {
+        val models = getJson(
+            "https://generativelanguage.googleapis.com/v1beta/models?pageSize=200",
+            mapOf("x-goog-api-key" to s.geminiKey),
+        ).optJSONArray("models") ?: JSONArray()
+        val names = (0 until models.length()).map { models.getJSONObject(it) }
+            .filter { m ->
+                val methods = m.optJSONArray("supportedGenerationMethods") ?: JSONArray()
+                (0 until methods.length()).any { methods.getString(it) == "generateContent" }
+            }
+            .map { it.optString("name").removePrefix("models/") }
+            .filter { it.startsWith("gemini") && !it.contains("embedding") && !it.contains("tts") && !it.contains("image") }
+            .sortedWith(compareByDescending<String> { it.contains("flash") }.thenByDescending { it })
+        if (names.isEmpty()) "(nenhum encontrado)" else names.take(8).joinToString(", ")
+    } catch (e: Exception) {
+        "(não foi possível obter a lista: ${e.message})"
+    }
+
+    private fun request(system: String, history: List<ChatMessage>, webSearch: Boolean): String =
             withToolFallback(webSearch) { withTools ->
                 val contents = JSONArray()
                 normalize(history).forEach {
@@ -153,7 +197,6 @@ class GeminiProvider(private val s: SettingsStore) : CloudProvider {
                     for (i in 0 until parts.length()) append(parts.getJSONObject(i).optString("text"))
                 }.trim()
             }
-        }
 }
 
 class OpenAiProvider(private val s: SettingsStore) : CloudProvider {

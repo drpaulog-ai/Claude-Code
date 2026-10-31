@@ -42,14 +42,18 @@ class SettingsStore(context: Context) {
         get() = str("openai_key", "")
         set(v) = put("openai_key", v)
 
+    /** Converte "Gemini 3 Flash" ou "models/gemini-3-flash" no identificador da API ("gemini-3-flash"). */
+    private fun modelId(raw: String, default: String): String =
+        raw.trim().removePrefix("models/").lowercase().replace(Regex("\\s+"), "-").ifBlank { default }
+
     var claudeModel: String
-        get() = str("claude_model", DEFAULT_CLAUDE_MODEL).ifBlank { DEFAULT_CLAUDE_MODEL }
+        get() = modelId(str("claude_model", DEFAULT_CLAUDE_MODEL), DEFAULT_CLAUDE_MODEL)
         set(v) = put("claude_model", v)
     var geminiModel: String
-        get() = str("gemini_model", DEFAULT_GEMINI_MODEL).ifBlank { DEFAULT_GEMINI_MODEL }
+        get() = modelId(str("gemini_model", DEFAULT_GEMINI_MODEL), DEFAULT_GEMINI_MODEL)
         set(v) = put("gemini_model", v)
     var openaiModel: String
-        get() = str("openai_model", DEFAULT_OPENAI_MODEL).ifBlank { DEFAULT_OPENAI_MODEL }
+        get() = modelId(str("openai_model", DEFAULT_OPENAI_MODEL), DEFAULT_OPENAI_MODEL)
         set(v) = put("openai_model", v)
 
     var mode: Mode

@@ -16,6 +16,7 @@ export default function Layout() {
       >
         <Stack.Screen name="index" options={{ title: "Fabulário" }} />
         <Stack.Screen name="criar" options={{ title: "Nova história" }} />
+        <Stack.Screen name="importar" options={{ title: "Importar história" }} />
         <Stack.Screen name="historia/[id]" options={{ title: "" }} />
         <Stack.Screen name="manga/[id]" options={{ title: "Manga" }} />
         <Stack.Screen name="vocabulario" options={{ title: "Meu vocabulário" }} />

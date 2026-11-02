@@ -45,8 +45,8 @@ export type Historia = {
   publico: string;
   idioma: Idioma;
   capitulos: Capitulo[];
-  descricaoPersonagens?: string;
-  fotos?: FotoGuardada[]; // fotos usadas para criar as personagens (guardadas como ficheiros) // aparência e personalidade (pode vir das fotos)
+  descricaoPersonagens?: string; // aparência e personalidade (pode vir das fotos)
+  fotos?: FotoGuardada[]; // fotos usadas para criar as personagens (guardadas como ficheiros)
   resumo: string; // resumo de tudo o que aconteceu até agora (para manter coerência)
   criadaEm: number;
 };

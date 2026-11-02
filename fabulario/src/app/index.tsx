@@ -43,6 +43,9 @@ export default function Inicio() {
             <Pressable style={estilos.botao} onPress={() => router.push("/criar")}>
               <Text style={estilos.botaoTexto}>✨ Criar nova história</Text>
             </Pressable>
+            <Pressable style={estilos.botaoSecundario} onPress={() => router.push("/importar")}>
+              <Text style={estilos.botaoSecundarioTexto}>📖 Importar história já escrita</Text>
+            </Pressable>
             <View style={{ flexDirection: "row", gap: 12 }}>
               <Link href="/vocabulario" asChild>
                 <Pressable style={[estilos.botaoSecundario, { flex: 1 }]}>

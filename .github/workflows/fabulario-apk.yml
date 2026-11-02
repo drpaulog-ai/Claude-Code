@@ -1,0 +1,60 @@
+name: Fabulário APK
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "fabulario/**"
+      - ".github/workflows/fabulario-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fabulario
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: fabulario/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Gerar projeto Android
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Compilar APK
+        working-directory: fabulario/android
+        run: ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+
+      - name: Renomear APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk fabulario.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fabulario-apk
+          path: fabulario/fabulario.apk
+
+      - name: Publicar como release (link direto para o telemóvel)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="fabulario-${{ github.run_number }}"
+          gh release create "$TAG" fabulario.apk \
+            --target "${{ github.sha }}" \
+            --title "Fabulário (build ${{ github.run_number }})" \
+            --notes "APK para instalar diretamente no Android. Abra este link no telemóvel e toque em fabulario.apk."

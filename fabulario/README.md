@@ -23,13 +23,20 @@ npx expo start
 
 Escaneie o QR code com o Expo Go. No app, abra **Configurações** e cole uma chave da API da Anthropic (crie em https://platform.claude.com).
 
-### Gerar um APK
+### Gerar um APK (para instalar direto no celular)
+
+O projeto já tem o perfil `apk` configurado em `eas.json`. No seu computador:
 
 ```bash
-npx eas-cli@latest build -p android --profile preview
+cd fabulario
+npm install
+npx eas-cli@latest login                       # conta Expo gratuita (expo.dev)
+npx eas-cli@latest build -p android --profile apk
 ```
 
-(Na primeira vez, o EAS pede login numa conta Expo gratuita e cria o `eas.json`. Para gerar APK em vez de AAB, use `"android": { "buildType": "apk" }` no perfil `preview`.)
+Na primeira vez, o EAS pergunta se pode criar o projeto e uma chave de assinatura: responda **sim** às duas.
+A compilação roda na nuvem da Expo (cerca de 10 a 20 minutos). No fim aparece um link e um QR code:
+abra no celular, baixe o `.apk` e instale (o Android vai pedir para permitir "instalar apps de fontes desconhecidas").
 
 ## Estrutura
 

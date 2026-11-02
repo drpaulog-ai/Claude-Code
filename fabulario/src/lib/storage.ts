@@ -109,7 +109,7 @@ export async function apagarPalavra(id: string): Promise<void> {
 
 export type Fornecedor = "claude" | "gemini";
 
-export const MODELO_GEMINI_PADRAO = "gemini-2.5-flash";
+export const MODELO_GEMINI_PADRAO = "gemini-flash-latest";
 
 const CHAVE_FORNECEDOR = "fabulario_fornecedor";
 const CHAVE_GEMINI = "fabulario_gemini_key";
@@ -147,7 +147,7 @@ export async function salvarChaveGemini(chave: string): Promise<void> {
   await guardar(CHAVE_GEMINI, chave);
 }
 
-/** Aceita "Gemini 2.5 Flash" ou "models/gemini-2.5-flash" e devolve "gemini-2.5-flash". */
+/** Aceita "Gemini Flash Latest" ou "models/gemini-flash-latest" e devolve "gemini-flash-latest". */
 export function normalizarModelo(bruto: string): string {
   return bruto.trim().replace(/^models\//, "").toLowerCase().replace(/\s+/g, "-");
 }

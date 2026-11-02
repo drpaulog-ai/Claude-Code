@@ -29,6 +29,8 @@ Na primeira utilização a app pede uma **chave gratuita do Gemini**:
 Por defeito usa o modelo `gemini-flash-latest`. Se não estiver disponível para a tua chave, a app
 mostra a lista de modelos que podes usar e podes escrever outro nas definições. O plano gratuito
 tem limites por minuto/dia; se forem atingidos, basta esperar um pouco.
+Se o modelo estiver sobrecarregado (erro 503) ou sem quota, a app tenta automaticamente outros
+modelos gratuitos (`gemini-2.5-flash`, `gemini-flash-lite-latest`, `gemini-2.5-flash-lite`).
 
 ## Compilar
 

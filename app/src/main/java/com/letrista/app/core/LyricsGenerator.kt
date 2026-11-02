@@ -2,6 +2,7 @@ package com.letrista.app.core
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -9,6 +10,7 @@ import kotlinx.coroutines.flow.flowOn
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
@@ -49,22 +51,11 @@ class LyricsGenerator(
             )
             .put("generationConfig", JSONObject().put("temperature", 1.0))
 
-        val httpRequest = Request.Builder()
-            .url("$baseUrl/models/$model:streamGenerateContent?alt=sse")
-            .header("x-goog-api-key", apiKey)
-            .post(body.toString().toRequestBody(JSON))
-            .build()
-
-        val response = try {
-            http.newCall(httpRequest).execute()
-        } catch (e: IOException) {
-            throw LyricsException("Sem ligação à internet ou ao Gemini.", e)
-        }
+        val response = openStream(body.toString())
 
         var finishReason = ""
         var receivedText = false
         response.use { resp ->
-            if (!resp.isSuccessful) throw httpError(resp.code, resp.body?.string().orEmpty())
             val source = resp.body?.source() ?: throw LyricsException("O Gemini não devolveu resposta.")
             try {
                 while (true) {
@@ -106,25 +97,65 @@ class LyricsGenerator(
     private fun blocked() =
         LyricsException("O Gemini não pôde criar este conteúdo. Experimenta reformular os temas ou as notas.")
 
-    private fun httpError(code: Int, body: String): LyricsException {
-        val message = runCatching {
-            JSONObject(body).optJSONObject("error")?.optString("message").orEmpty()
-        }.getOrDefault("")
-        val modelProblem = code == 404 ||
-            (code == 400 && message.contains("model", true) && !message.contains("api key", true))
-        return when {
-            modelProblem -> LyricsException(
+    /**
+     * Abre o streaming. Se o modelo estiver sobrecarregado (503), sem quota (429) ou não existir,
+     * tenta automaticamente os outros modelos gratuitos, com pequenas pausas entre tentativas.
+     */
+    private suspend fun openStream(payload: String): Response {
+        val models = (listOf(model) + FALLBACK_MODELS).distinct()
+        var busy = false
+        var rateLimited = false
+        var chosenModelMissing = false
+
+        repeat(ROUNDS) { round ->
+            if (round > 0) delay(ROUND_PAUSE_MS)
+            for (m in models) {
+                currentCoroutineContext().ensureActive()
+                val request = Request.Builder()
+                    .url("$baseUrl/models/$m:streamGenerateContent?alt=sse")
+                    .header("x-goog-api-key", apiKey)
+                    .post(payload.toRequestBody(JSON))
+                    .build()
+                val resp = try {
+                    http.newCall(request).execute()
+                } catch (e: IOException) {
+                    throw LyricsException("Sem ligação à internet ou ao Gemini.", e)
+                }
+                if (resp.isSuccessful) return resp
+
+                val code = resp.code
+                val message = resp.use { errorMessage(it.body?.string().orEmpty()) }
+                val wrongModel = code == 404 ||
+                    (code == 400 && message.contains("model", true) && !message.contains("api key", true))
+                when {
+                    code == 503 || code == 500 || code == 504 -> { busy = true; delay(RETRY_PAUSE_MS) }
+                    code == 429 -> { rateLimited = true; delay(RETRY_PAUSE_MS) }
+                    wrongModel -> if (m == model) chosenModelMissing = true
+                    code == 400 || code == 401 || code == 403 ->
+                        throw LyricsException("Chave do Gemini inválida ou sem permissão. Verifica-a nas definições.")
+                    else -> throw LyricsException("Erro do Gemini ($code): $message")
+                }
+            }
+        }
+        throw when {
+            busy -> LyricsException(
+                "Os servidores gratuitos do Gemini estão sobrecarregados neste momento. " +
+                    "Tenta novamente daqui a um ou dois minutos.",
+            )
+            rateLimited -> LyricsException(
+                "Limite gratuito do Gemini atingido por agora. Espera um minuto e tenta de novo.",
+            )
+            chosenModelMissing -> LyricsException(
                 "O modelo \"$model\" não está disponível para esta chave. " +
                     "Muda o modelo nas definições para um destes: ${availableModels()}",
             )
-            code == 400 || code == 401 || code == 403 ->
-                LyricsException("Chave do Gemini inválida ou sem permissão. Verifica-a nas definições.")
-            code == 429 ->
-                LyricsException("Limite gratuito do Gemini atingido por agora. Espera um minuto e tenta de novo.")
-            code >= 500 -> LyricsException("O Gemini está com problemas ($code). Tenta novamente daqui a pouco.")
-            else -> LyricsException("Erro do Gemini ($code): $message")
+            else -> LyricsException("Não foi possível contactar o Gemini. Tenta novamente.")
         }
     }
+
+    private fun errorMessage(body: String): String = runCatching {
+        JSONObject(body).optJSONObject("error")?.optString("message").orEmpty()
+    }.getOrDefault("")
 
     /** Lista modelos de texto disponíveis para a chave (para ajudar a escolher outro). */
     private fun availableModels(): String = try {
@@ -153,5 +184,16 @@ class LyricsGenerator(
         const val DEFAULT_MODEL = "gemini-flash-latest"
         const val BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
         private val JSON = "application/json; charset=utf-8".toMediaType()
+
+        /** Modelos gratuitos tentados (por ordem) quando o escolhido falha. */
+        val FALLBACK_MODELS = listOf(
+            "gemini-flash-latest",
+            "gemini-2.5-flash",
+            "gemini-flash-lite-latest",
+            "gemini-2.5-flash-lite",
+        )
+        private const val ROUNDS = 2
+        private const val RETRY_PAUSE_MS = 1_000L
+        private const val ROUND_PAUSE_MS = 4_000L
     }
 }

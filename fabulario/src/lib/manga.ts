@@ -93,22 +93,41 @@ Regras:
 - "cena": descrição visual da vinheta EM INGLÊS para um ilustrador (enquadramento, personagens presentes, ações, expressões, cenário). Não ponhas diálogos aqui.
 - "narracao": texto curto para a caixa de narração, no idioma da história, ou "" se não houver.
 - "falas": no máximo 2 falas por vinheta, cada uma com no máximo 12 palavras, no idioma da história.
-- "personagens_visuais": EM INGLÊS, descrição visual fixa e detalhada de cada personagem principal (idade aparente, cabelo, roupa, cores, traços marcantes), para manter as personagens sempre iguais em todas as páginas.`;
+- "personagens_visuais": EM INGLÊS, descrição visual fixa e concisa de cada personagem principal (idade aparente, cabelo, roupa, cores, traços marcantes), no máximo 90 palavras no total, para manter as personagens sempre iguais em todas as páginas.`;
 
 export async function gerarGuiao(historia: Historia, capIdx: number): Promise<Guiao> {
   const cap = historia.capitulos[capIdx];
+
+  // As fotos vão também para a IA de texto, para que a descrição visual das personagens
+  // (usada em todas as páginas) se baseie nelas — útil sobretudo com o Pollinations,
+  // que não aceita imagens de referência.
+  const imagens: { legenda: string; base64: string }[] = [];
+  for (const [i, foto] of (historia.fotos ?? []).entries()) {
+    const base64 = await lerBase64(foto.arquivo);
+    if (base64) {
+      imagens.push({
+        legenda: `Foto ${i + 1}${foto.nome ? ` — personagem: ${foto.nome}` : " — personagem principal"}`,
+        base64,
+      });
+    }
+  }
+
   const guiao = await pedirJSON<Guiao>({
     system: SYSTEM_GUIONISTA,
     prompt: [
       `Idioma da história: ${nomeIdioma(historia.idioma)}.`,
       `Público: ${historia.publico}. Género: ${historia.genero}.`,
       historia.descricaoPersonagens ? `Personagens: ${historia.descricaoPersonagens}` : "",
+      imagens.length
+        ? `As fotos acima mostram as personagens indicadas nas legendas. Em "personagens_visuais", descreve cada uma com base na foto (cabelo, rosto, óculos, barba, roupa, cores), de forma respeitosa e sem comentar o peso.`
+        : "",
       `Capítulo ${capIdx + 1}: ${cap.titulo}\n\n${cap.texto}`,
     ]
       .filter(Boolean)
       .join("\n\n"),
     schema: SCHEMA_GUIAO,
     esforco: "medium",
+    imagens,
   });
   if (!guiao.paginas?.length) throw new ErroIA("A IA não conseguiu dividir o capítulo em páginas.");
   return guiao;
@@ -138,7 +157,9 @@ function promptPagina(
   return [
     `Draw ONE complete comic page in portrait format, style: ${estilo}.`,
     `The page has ${n} panels in a clear layout with white gutters, read left-to-right, top-to-bottom.`,
-    `Characters (keep them exactly consistent with this description and with any reference images): ${guiao.personagens_visuais}`,
+    `Characters (keep them exactly consistent with this description and with any reference images): ${
+      comTexto ? guiao.personagens_visuais : guiao.personagens_visuais.slice(0, 600)
+    }`,
     vinhetas,
     comTexto
       ? `Write the dialogue and narration text exactly as given, in ${idioma}, clearly legible, inside speech bubbles and narration boxes. Do not add any other text, titles or signatures.`

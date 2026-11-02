@@ -18,6 +18,8 @@ type PedidoJSON = {
   prompt: string;
   schema: Record<string, unknown>;
   esforco: "low" | "medium";
+  /** Fotos (JPEG em base64), cada uma com uma legenda que a IA lê antes da imagem. */
+  imagens?: { legenda: string; base64: string }[];
 };
 
 /** Faz um pedido que devolve JSON, usando o fornecedor escolhido nas Configurações. */
@@ -50,7 +52,21 @@ async function pedirClaude(params: PedidoJSON): Promise<string> {
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
       system: params.system,
-      messages: [{ role: "user", content: params.prompt }],
+      messages: [
+        {
+          role: "user",
+          content: [
+            ...(params.imagens ?? []).flatMap((img) => [
+              { type: "text" as const, text: img.legenda },
+              {
+                type: "image" as const,
+                source: { type: "base64" as const, media_type: "image/jpeg" as const, data: img.base64 },
+              },
+            ]),
+            { type: "text" as const, text: params.prompt },
+          ],
+        },
+      ],
       output_config: {
         effort: params.esforco,
         format: { type: "json_schema", schema: params.schema },
@@ -129,7 +145,18 @@ async function pedirGemini(params: PedidoJSON): Promise<string> {
       headers: { "Content-Type": "application/json", "x-goog-api-key": chave },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: params.system }] },
-        contents: [{ role: "user", parts: [{ text: params.prompt }] }],
+        contents: [
+          {
+            role: "user",
+            parts: [
+              ...(params.imagens ?? []).flatMap((img) => [
+                { text: img.legenda },
+                { inlineData: { mimeType: "image/jpeg", data: img.base64 } },
+              ]),
+              { text: params.prompt },
+            ],
+          },
+        ],
         generationConfig: {
           responseMimeType: "application/json",
           responseSchema: schemaGemini(params.schema),
@@ -184,8 +211,9 @@ const SCHEMA_CAPITULO = {
     titulo_capitulo: { type: "string" },
     texto: { type: "string" },
     resumo_atualizado: { type: "string" },
+    descricao_personagens: { type: "string" },
   },
-  required: ["titulo_historia", "titulo_capitulo", "texto", "resumo_atualizado"],
+  required: ["titulo_historia", "titulo_capitulo", "texto", "resumo_atualizado", "descricao_personagens"],
   additionalProperties: false,
 } as const;
 
@@ -194,18 +222,27 @@ type RespostaCapitulo = {
   titulo_capitulo: string;
   texto: string;
   resumo_atualizado: string;
+  descricao_personagens: string;
 };
+
+export type FotoPersonagem = { nome: string; base64: string };
 
 const SYSTEM_ESCRITOR = `Você é um escritor de histórias seriadas para um app de leitura em voz alta.
 Escreva sempre no idioma pedido, com linguagem adequada ao público indicado.
 Cada capítulo deve ter entre 350 e 550 palavras, dividido em parágrafos curtos separados por uma linha em branco, e terminar com um gancho que dê vontade de ler o próximo.
 O texto será lido por uma voz sintética: não use títulos, listas, emojis, markdown ou marcações dentro de "texto".
-Em "resumo_atualizado", escreva em português um resumo de até 120 palavras de tudo o que aconteceu na história até o fim deste capítulo, incluindo nomes e fatos importantes para manter a continuidade.`;
+Em "resumo_atualizado", escreva em português um resumo de até 120 palavras de tudo o que aconteceu na história até o fim deste capítulo, incluindo nomes e fatos importantes para manter a continuidade.
+Em "descricao_personagens", escreva em português uma descrição curta (até 100 palavras) da aparência e personalidade das personagens principais, para manter a continuidade nos próximos capítulos.
+Quando receber fotos, use-as como inspiração para as personagens: aparência, roupa, expressão, ambiente e objetos visíveis. Descreva com carinho e respeito, sem comentar o peso nem fazer suposições sobre saúde, origem ou outras características sensíveis. Se uma foto mostrar um animal, objeto ou desenho, ele também pode tornar-se personagem.`;
 
 export async function gerarCapitulo(
-  historia: Pick<Historia, "genero" | "tema" | "personagens" | "publico" | "idioma" | "resumo" | "titulo"> & {
+  historia: Pick<
+    Historia,
+    "genero" | "tema" | "personagens" | "publico" | "idioma" | "resumo" | "titulo" | "descricaoPersonagens"
+  > & {
     capitulos: Historia["capitulos"];
   },
+  fotos: FotoPersonagem[] = [],
 ): Promise<RespostaCapitulo> {
   const numero = historia.capitulos.length + 1;
   const ultimo = historia.capitulos[historia.capitulos.length - 1];
@@ -215,8 +252,16 @@ export async function gerarCapitulo(
     `Público: ${historia.publico}.`,
     `Gênero: ${historia.genero}.`,
     `Tema ou ideia: ${historia.tema || "livre"}.`,
-    `Personagens: ${historia.personagens || "crie personagens marcantes"}.`,
+    `Personagens: ${historia.personagens || (fotos.length ? "baseadas nas fotos" : "crie personagens marcantes")}.`,
   ];
+  if (historia.descricaoPersonagens) {
+    partes.push(`Descrição das personagens: ${historia.descricaoPersonagens}`);
+  }
+  if (fotos.length) {
+    partes.push(
+      `Recebeu ${fotos.length === 1 ? "uma foto" : `${fotos.length} fotos`} acima. Crie as personagens principais a partir delas, usando os nomes indicados nas legendas.`,
+    );
+  }
   if (numero === 1) {
     partes.push("Escreva o capítulo 1 e crie um título para a história.");
   } else {
@@ -233,6 +278,10 @@ export async function gerarCapitulo(
     prompt: partes.join("\n\n"),
     schema: SCHEMA_CAPITULO,
     esforco: "medium",
+    imagens: fotos.map((f, i) => ({
+      legenda: `Foto ${i + 1}${f.nome ? ` — personagem: ${f.nome}` : " — personagem sem nome (invente um)"}`,
+      base64: f.base64,
+    })),
   });
 }
 

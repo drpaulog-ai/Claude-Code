@@ -28,6 +28,7 @@ export type Historia = {
   publico: string;
   idioma: Idioma;
   capitulos: Capitulo[];
+  descricaoPersonagens?: string; // aparência e personalidade (pode vir das fotos)
   resumo: string; // resumo de tudo o que aconteceu até agora (para manter coerência)
   criadaEm: number;
 };

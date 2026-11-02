@@ -176,6 +176,7 @@ export default function Leitor() {
       const atualizada: Historia = {
         ...historia,
         resumo: cap.resumo_atualizado,
+        descricaoPersonagens: cap.descricao_personagens || historia.descricaoPersonagens,
         capitulos: [...historia.capitulos, { titulo: cap.titulo_capitulo, texto: cap.texto }],
       };
       await salvarHistoria(atualizada);

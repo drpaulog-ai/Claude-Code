@@ -33,8 +33,8 @@ Requisitos: Android Studio (Narwhal ou mais recente) ou JDK 17 + Android SDK 36.
 # APK em app/build/outputs/apk/debug/app-debug.apk
 ```
 
-O workflow `.github/workflows/android.yml` compila o APK em cada push e publica-o como artefacto
-(`letrista-debug-apk`) no separador **Actions** do GitHub.
+O workflow `.github/workflows/letrista-apk.yml` compila o APK em cada push e publica-o numa
+**release** do GitHub (`letrista-<n>`), com link direto para instalar no telemóvel.
 
 ## Estrutura
 

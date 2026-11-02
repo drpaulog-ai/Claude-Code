@@ -11,7 +11,7 @@ data class SongRequest(
     val includeChorus: Boolean = true,
 )
 
-/** Constrói os prompts enviados ao Claude. Puro Kotlin, sem dependências de Android. */
+/** Constrói os prompts enviados à IA. Puro Kotlin, sem dependências de Android. */
 object PromptBuilder {
 
     val systemPrompt: String = """

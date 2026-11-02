@@ -71,6 +71,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.letrista.app.core.LyricsGenerator
 import com.letrista.app.core.MusicCatalog
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -137,9 +138,10 @@ fun LetristaApp(vm: LyricsViewModel = viewModel()) {
     }
 
     if (state.showSettings) {
-        ApiKeyDialog(
-            current = state.apiKey,
-            onSave = vm::saveApiKey,
+        SettingsDialog(
+            currentKey = state.apiKey,
+            currentModel = state.model,
+            onSave = vm::saveSettings,
             onDismiss = vm::closeSettings,
         )
     }
@@ -496,30 +498,56 @@ private fun share(context: Context, text: String) {
 // ---------------------------------------------------------------- Definições
 
 @Composable
-private fun ApiKeyDialog(current: String, onSave: (String) -> Unit, onDismiss: () -> Unit) {
-    var key by remember { mutableStateOf(current) }
+private fun SettingsDialog(
+    currentKey: String,
+    currentModel: String,
+    onSave: (key: String, model: String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var key by remember { mutableStateOf(currentKey) }
+    var model by remember { mutableStateOf(currentModel) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Chave da API do Claude") },
+        title = { Text("Chave grátis do Gemini") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+            ) {
                 Text(
-                    "As letras são criadas pelo Claude. Cria uma chave em " +
-                        "platform.claude.com e cola-a aqui. Fica guardada apenas neste dispositivo.",
+                    "As letras são criadas pela IA Gemini do Google, que é gratuita. " +
+                        "Para obter a chave:\n" +
+                        "1. Abre aistudio.google.com/apikey e entra com a tua conta Google.\n" +
+                        "2. Toca em \"Create API key\" e copia a chave.\n" +
+                        "3. Cola-a aqui. Fica guardada só neste telemóvel.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 OutlinedTextField(
                     value = key,
                     onValueChange = { key = it },
-                    placeholder = { Text("sk-ant-…") },
+                    label = { Text("Chave da API") },
+                    placeholder = { Text("AIza…") },
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
                 )
+                OutlinedTextField(
+                    value = model,
+                    onValueChange = { model = it },
+                    label = { Text("Modelo (opcional)") },
+                    placeholder = { Text(LyricsGenerator.DEFAULT_MODEL) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    "Deixa o modelo em branco para usar ${LyricsGenerator.DEFAULT_MODEL}.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSave(key) }, enabled = key.isNotBlank()) { Text("Guardar") }
+            TextButton(onClick = { onSave(key, model) }, enabled = key.isNotBlank()) { Text("Guardar") }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text("Cancelar") }

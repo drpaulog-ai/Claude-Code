@@ -1,6 +1,6 @@
 # Letrista 🎵
 
-Aplicação Android para criar letras de músicas com a ajuda do Claude (Anthropic).
+Aplicação Android para criar letras de músicas com a ajuda da IA gratuita **Google Gemini**.
 
 ## Como funciona
 
@@ -18,11 +18,17 @@ A app guia-te num assistente de 4 passos:
 A letra aparece em tempo real (streaming) e podes **copiá-la**, **partilhá-la**, gerar **outra versão**
 ou começar uma **nova canção**.
 
-## Configuração
+## Configuração (grátis)
 
-Na primeira utilização a app pede uma **chave da API do Claude** (cria-a em
-[platform.claude.com](https://platform.claude.com)). A chave fica guardada só no dispositivo
-(DataStore privado da app) e pode ser alterada no ícone ⚙️.
+Na primeira utilização a app pede uma **chave gratuita do Gemini**:
+
+1. Abre [aistudio.google.com/apikey](https://aistudio.google.com/apikey) e entra com a conta Google.
+2. Toca em **Create API key** e copia a chave.
+3. Cola-a na app. Fica guardada só no dispositivo e pode ser alterada no ícone ⚙️.
+
+Por defeito usa o modelo `gemini-flash-latest`. Se não estiver disponível para a tua chave, a app
+mostra a lista de modelos que podes usar e podes escrever outro nas definições. O plano gratuito
+tem limites por minuto/dia; se forem atingidos, basta esperar um pouco.
 
 ## Compilar
 
@@ -42,9 +48,9 @@ O workflow `.github/workflows/letrista-apk.yml` compila o APK em cada push e pub
 |---|---|
 | `core/MusicCatalog.kt` | Listas de estilos, temas, idiomas e ambientes |
 | `core/SongRequest.kt` | Pedido do utilizador e construção dos prompts |
-| `core/LyricsGenerator.kt` | Chamada à API do Claude (SDK oficial `anthropic-java`) em streaming |
-| `data/SettingsRepository.kt` | Guarda a chave da API |
+| `core/LyricsGenerator.kt` | Chamada à API do Google Gemini (OkHttp) em streaming |
+| `data/SettingsRepository.kt` | Guarda a chave e o modelo do Gemini |
 | `ui/LyricsViewModel.kt` | Estado do assistente e geração |
 | `ui/LetristaApp.kt` | Ecrãs em Jetpack Compose (Material 3) |
 
-Tecnologias: Kotlin, Jetpack Compose, Material 3, DataStore, Coroutines e o modelo `claude-opus-5-5`.
+Tecnologias: Kotlin, Jetpack Compose, Material 3, DataStore, Coroutines, OkHttp e a API do Google Gemini.

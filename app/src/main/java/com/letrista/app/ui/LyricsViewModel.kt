@@ -7,6 +7,7 @@ import com.letrista.app.core.LyricsException
 import com.letrista.app.core.LyricsGenerator
 import com.letrista.app.core.MusicCatalog
 import com.letrista.app.core.SongRequest
+import com.letrista.app.data.AiSettings
 import com.letrista.app.data.SettingsRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -40,6 +41,7 @@ data class UiState(
     val isGenerating: Boolean = false,
     val error: String? = null,
     val apiKey: String = "",
+    val model: String = "",
     val apiKeyLoaded: Boolean = false,
     val showSettings: Boolean = false,
 ) {
@@ -70,15 +72,17 @@ class LyricsViewModel(app: Application) : AndroidViewModel(app) {
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     private var generator: LyricsGenerator? = null
-    private var generatorKey: String? = null
+    private var generatorConfig: Pair<String, String>? = null
     private var job: Job? = null
 
     init {
         viewModelScope.launch {
-            settings.apiKey.collect { key ->
+            settings.settings.collect { saved ->
+                val key = saved.apiKey
                 _state.update {
                     it.copy(
                         apiKey = key,
+                        model = saved.model,
                         // Na primeira utilização, pede logo a chave.
                         showSettings = if (!it.apiKeyLoaded) key.isBlank() else it.showSettings,
                         apiKeyLoaded = true,
@@ -121,7 +125,7 @@ class LyricsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun startOver() {
         job?.cancel()
-        _state.update { UiState(apiKey = it.apiKey, apiKeyLoaded = true) }
+        _state.update { UiState(apiKey = it.apiKey, model = it.model, apiKeyLoaded = true) }
     }
 
     // ---- Passo 1: estilo ----
@@ -164,9 +168,11 @@ class LyricsViewModel(app: Application) : AndroidViewModel(app) {
     fun openSettings() = _state.update { it.copy(showSettings = true) }
     fun closeSettings() = _state.update { it.copy(showSettings = false) }
 
-    fun saveApiKey(key: String) {
-        viewModelScope.launch { settings.setApiKey(key) }
-        _state.update { it.copy(showSettings = false, apiKey = key.trim(), error = null) }
+    fun saveSettings(key: String, model: String) {
+        viewModelScope.launch { settings.save(AiSettings(key, model)) }
+        _state.update {
+            it.copy(showSettings = false, apiKey = key.trim(), model = model.trim(), error = null)
+        }
     }
 
     // ---- Geração ----
@@ -180,8 +186,9 @@ class LyricsViewModel(app: Application) : AndroidViewModel(app) {
         job?.cancel()
         _state.update { it.copy(step = Step.RESULT, lyrics = "", error = null, isGenerating = true) }
 
-        val gen = generator.takeIf { generatorKey == s.apiKey }
-            ?: LyricsGenerator(s.apiKey).also { generator = it; generatorKey = s.apiKey }
+        val config = s.apiKey to s.model
+        val gen = generator.takeIf { generatorConfig == config }
+            ?: LyricsGenerator(s.apiKey, s.model).also { generator = it; generatorConfig = config }
 
         job = viewModelScope.launch {
             try {

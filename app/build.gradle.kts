@@ -68,6 +68,6 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 
-    // SDK oficial da Anthropic (API do Claude)
-    implementation("com.anthropic:anthropic-java:3.4.0")
+    // Cliente HTTP para a API gratuita do Google Gemini
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

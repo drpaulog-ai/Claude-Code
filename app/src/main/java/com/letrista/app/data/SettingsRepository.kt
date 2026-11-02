@@ -9,14 +9,22 @@ import kotlinx.coroutines.flow.map
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
 
-/** Guarda a chave da API localmente no dispositivo (armazenamento privado da app). */
+/** Definições da IA, guardadas localmente no dispositivo (armazenamento privado da app). */
+data class AiSettings(val apiKey: String = "", val model: String = "")
+
 class SettingsRepository(private val context: Context) {
 
-    private val apiKeyPref = stringPreferencesKey("anthropic_api_key")
+    private val apiKeyPref = stringPreferencesKey("gemini_api_key")
+    private val modelPref = stringPreferencesKey("gemini_model")
 
-    val apiKey: Flow<String> = context.dataStore.data.map { it[apiKeyPref].orEmpty() }
+    val settings: Flow<AiSettings> = context.dataStore.data.map {
+        AiSettings(apiKey = it[apiKeyPref].orEmpty(), model = it[modelPref].orEmpty())
+    }
 
-    suspend fun setApiKey(value: String) {
-        context.dataStore.edit { it[apiKeyPref] = value.trim() }
+    suspend fun save(value: AiSettings) {
+        context.dataStore.edit {
+            it[apiKeyPref] = value.apiKey.trim()
+            it[modelPref] = value.model.trim()
+        }
     }
 }

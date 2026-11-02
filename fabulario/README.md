@@ -21,7 +21,10 @@ npm install
 npx expo start
 ```
 
-Escaneie o QR code com o Expo Go. No app, abra **Configurações** e cole uma chave da API da Anthropic (crie em https://platform.claude.com).
+Escaneie o QR code com o Expo Go. Na app, abra **Configurações**, escolha a IA e cole a chave:
+
+- **Gemini (Google)**: tem nível gratuito. Crie a chave em https://aistudio.google.com.
+- **Claude (Anthropic)**: pago por consumo. Crie a chave em https://platform.claude.com.
 
 ### Gerar um APK (para instalar direto no celular)
 
@@ -47,7 +50,7 @@ src/app/criar.tsx            formulário de nova história
 src/app/historia/[id].tsx    leitor: narração, destaque de palavras, tradução
 src/app/vocabulario.tsx      palavras salvas e revisão
 src/app/configuracoes.tsx    chave da API
-src/lib/ia.ts                chamadas ao Claude (capítulos e tradução)
+src/lib/ia.ts                chamadas ao Claude ou ao Gemini (capítulos e tradução)
 src/lib/storage.ts           armazenamento local
 ```
 

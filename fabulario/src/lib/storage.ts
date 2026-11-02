@@ -105,16 +105,58 @@ export async function apagarPalavra(id: string): Promise<void> {
   await AsyncStorage.setItem(CHAVE_VOCAB, JSON.stringify(lista.filter((p) => p.id !== id)));
 }
 
-// ---------- Chave da API (guardada de forma segura no aparelho) ----------
+// ---------- Fornecedor de IA e chaves (guardadas de forma segura no aparelho) ----------
+
+export type Fornecedor = "claude" | "gemini";
+
+export const MODELO_GEMINI_PADRAO = "gemini-2.5-flash";
+
+const CHAVE_FORNECEDOR = "fabulario_fornecedor";
+const CHAVE_GEMINI = "fabulario_gemini_key";
+const CHAVE_MODELO_GEMINI = "fabulario_gemini_modelo";
+
+async function guardar(chave: string, valor: string): Promise<void> {
+  if (valor.trim()) {
+    await SecureStore.setItemAsync(chave, valor.trim());
+  } else {
+    await SecureStore.deleteItemAsync(chave);
+  }
+}
+
+export async function obterFornecedor(): Promise<Fornecedor> {
+  return (await SecureStore.getItemAsync(CHAVE_FORNECEDOR)) === "gemini" ? "gemini" : "claude";
+}
+
+export async function salvarFornecedor(f: Fornecedor): Promise<void> {
+  await SecureStore.setItemAsync(CHAVE_FORNECEDOR, f);
+}
 
 export async function obterChaveApi(): Promise<string | null> {
   return SecureStore.getItemAsync(CHAVE_API);
 }
 
 export async function salvarChaveApi(chave: string): Promise<void> {
-  if (chave.trim()) {
-    await SecureStore.setItemAsync(CHAVE_API, chave.trim());
-  } else {
-    await SecureStore.deleteItemAsync(CHAVE_API);
-  }
+  await guardar(CHAVE_API, chave);
+}
+
+export async function obterChaveGemini(): Promise<string | null> {
+  return SecureStore.getItemAsync(CHAVE_GEMINI);
+}
+
+export async function salvarChaveGemini(chave: string): Promise<void> {
+  await guardar(CHAVE_GEMINI, chave);
+}
+
+/** Aceita "Gemini 2.5 Flash" ou "models/gemini-2.5-flash" e devolve "gemini-2.5-flash". */
+export function normalizarModelo(bruto: string): string {
+  return bruto.trim().replace(/^models\//, "").toLowerCase().replace(/\s+/g, "-");
+}
+
+export async function obterModeloGemini(): Promise<string> {
+  const m = await SecureStore.getItemAsync(CHAVE_MODELO_GEMINI);
+  return normalizarModelo(m ?? "") || MODELO_GEMINI_PADRAO;
+}
+
+export async function salvarModeloGemini(modelo: string): Promise<void> {
+  await guardar(CHAVE_MODELO_GEMINI, normalizarModelo(modelo));
 }

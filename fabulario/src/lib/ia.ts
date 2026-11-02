@@ -1,36 +1,51 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { obterChaveApi, nomeIdioma, type Historia, type Idioma } from "./storage";
+import {
+  nomeIdioma,
+  obterChaveApi,
+  obterChaveGemini,
+  obterFornecedor,
+  obterModeloGemini,
+  type Historia,
+  type Idioma,
+} from "./storage";
 
-const MODELO = "claude-opus-5-5";
+const MODELO_CLAUDE = "claude-opus-5-5";
 
 export class ErroIA extends Error {}
 
-async function cliente(): Promise<Anthropic> {
-  const apiKey = await obterChaveApi();
-  if (!apiKey) {
-    throw new ErroIA("Configure sua chave da API em Configurações antes de criar histórias.");
-  }
-  // Protótipo: a chave fica no aparelho do usuário. Em produção, as chamadas
-  // devem passar por um servidor próprio para não expor a chave no app.
-  return new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
-}
-
-/**
- * Faz uma chamada que devolve JSON no formato do schema informado.
- * Usa fallbacks do lado do servidor: se o modelo recusar o pedido, a API
- * tenta automaticamente o modelo recomendado.
- */
-async function pedirJSON<T>(params: {
+type PedidoJSON = {
   system: string;
   prompt: string;
   schema: Record<string, unknown>;
   esforco: "low" | "medium";
-}): Promise<T> {
-  const ia = await cliente();
+};
+
+/** Faz um pedido que devolve JSON, usando o fornecedor escolhido nas Configurações. */
+async function pedirJSON<T>(params: PedidoJSON): Promise<T> {
+  const texto =
+    (await obterFornecedor()) === "gemini" ? await pedirGemini(params) : await pedirClaude(params);
+  try {
+    return JSON.parse(texto) as T;
+  } catch {
+    throw new ErroIA("A resposta da IA veio num formato inesperado. Tente novamente.");
+  }
+}
+
+// ---------- Claude (Anthropic) ----------
+
+async function pedirClaude(params: PedidoJSON): Promise<string> {
+  const apiKey = await obterChaveApi();
+  if (!apiKey) {
+    throw new ErroIA("Configure a sua chave da Anthropic em Configurações (ou escolha o Gemini).");
+  }
+  // A chave fica só no aparelho do utilizador (app de uso pessoal).
+  const ia = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
   let resposta;
   try {
+    // Fallbacks do lado do servidor: se o modelo recusar o pedido, a API
+    // tenta automaticamente o modelo recomendado.
     resposta = await ia.beta.messages.create({
-      model: MODELO,
+      model: MODELO_CLAUDE,
       max_tokens: 16000,
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
@@ -43,13 +58,13 @@ async function pedirJSON<T>(params: {
     });
   } catch (e) {
     if (e instanceof Anthropic.AuthenticationError) {
-      throw new ErroIA("Chave da API inválida. Confira em Configurações.");
+      throw new ErroIA("Chave da Anthropic inválida. Confira em Configurações.");
     }
     if (e instanceof Anthropic.RateLimitError) {
-      throw new ErroIA("Muitas requisições seguidas. Aguarde um pouco e tente de novo.");
+      throw new ErroIA("Muitos pedidos seguidos. Aguarde um pouco e tente de novo.");
     }
     if (e instanceof Anthropic.APIConnectionError) {
-      throw new ErroIA("Sem conexão com a internet ou com o serviço de IA.");
+      throw new ErroIA("Sem ligação à internet ou ao serviço de IA.");
     }
     if (e instanceof Anthropic.APIError) {
       throw new ErroIA(`Erro do serviço de IA (${e.status ?? "?"}): ${e.message}`);
@@ -63,15 +78,101 @@ async function pedirJSON<T>(params: {
   if (resposta.stop_reason === "max_tokens") {
     throw new ErroIA("A resposta ficou longa demais e foi cortada. Tente novamente.");
   }
+  return resposta.content.map((bloco) => (bloco.type === "text" ? bloco.text : "")).join("");
+}
 
-  const texto = resposta.content
-    .map((bloco) => (bloco.type === "text" ? bloco.text : ""))
-    .join("");
+// ---------- Gemini (Google) ----------
+
+const URL_GEMINI = "https://generativelanguage.googleapis.com/v1beta";
+
+/** Converte o JSON Schema usado no Claude para o formato de schema do Gemini. */
+function schemaGemini(schema: Record<string, unknown>): Record<string, unknown> {
+  const props = schema.properties as Record<string, { type: string }>;
+  return {
+    type: "OBJECT",
+    properties: Object.fromEntries(
+      Object.entries(props).map(([k, v]) => [k, { type: v.type.toUpperCase() }]),
+    ),
+    required: schema.required,
+    propertyOrdering: Object.keys(props),
+  };
+}
+
+async function modelosGemini(chave: string): Promise<string> {
   try {
-    return JSON.parse(texto) as T;
+    const r = await fetch(`${URL_GEMINI}/models?pageSize=200`, { headers: { "x-goog-api-key": chave } });
+    const json = (await r.json()) as {
+      models?: { name: string; supportedGenerationMethods?: string[] }[];
+    };
+    const nomes = (json.models ?? [])
+      .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
+      .map((m) => m.name.replace(/^models\//, ""))
+      .filter((n) => n.startsWith("gemini") && !/embedding|tts|image|audio|live/.test(n))
+      .sort((a, b) => Number(b.includes("flash")) - Number(a.includes("flash")) || b.localeCompare(a));
+    return nomes.length ? nomes.slice(0, 8).join(", ") : "(nenhum encontrado)";
   } catch {
-    throw new ErroIA("A resposta da IA veio num formato inesperado. Tente novamente.");
+    return "(não foi possível obter a lista)";
   }
+}
+
+async function pedirGemini(params: PedidoJSON): Promise<string> {
+  const chave = await obterChaveGemini();
+  if (!chave) {
+    throw new ErroIA("Configure a sua chave do Gemini em Configurações.");
+  }
+  const modelo = await obterModeloGemini();
+
+  let r: Response;
+  try {
+    r = await fetch(`${URL_GEMINI}/models/${modelo}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": chave },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: params.system }] },
+        contents: [{ role: "user", parts: [{ text: params.prompt }] }],
+        generationConfig: {
+          responseMimeType: "application/json",
+          responseSchema: schemaGemini(params.schema),
+        },
+      }),
+    });
+  } catch {
+    throw new ErroIA("Sem ligação à internet ou ao Gemini.");
+  }
+
+  const json = (await r.json().catch(() => ({}))) as {
+    error?: { message?: string; status?: string };
+    promptFeedback?: { blockReason?: string };
+    candidates?: { finishReason?: string; content?: { parts?: { text?: string }[] } }[];
+  };
+
+  if (!r.ok) {
+    const msg = json.error?.message ?? "";
+    if (r.status === 404 || (r.status === 400 && /model/i.test(msg) && !/api key/i.test(msg))) {
+      throw new ErroIA(
+        `O modelo "${modelo}" não existe ou não está disponível para esta chave. ` +
+          `Copie um destes para Configurações → Modelo Gemini: ${await modelosGemini(chave)}`,
+      );
+    }
+    if (r.status === 400 || r.status === 401 || r.status === 403) {
+      throw new ErroIA("Chave do Gemini inválida ou sem permissão. Confira em Configurações.");
+    }
+    if (r.status === 429) {
+      throw new ErroIA("Limite gratuito do Gemini atingido por agora. Aguarde um minuto e tente de novo.");
+    }
+    throw new ErroIA(`Erro do Gemini (${r.status}): ${msg}`);
+  }
+
+  const candidato = json.candidates?.[0];
+  if (json.promptFeedback?.blockReason || candidato?.finishReason === "SAFETY") {
+    throw new ErroIA("A IA não pôde criar esse conteúdo. Tente outro tema ou personagens.");
+  }
+  if (candidato?.finishReason === "MAX_TOKENS") {
+    throw new ErroIA("A resposta ficou longa demais e foi cortada. Tente novamente.");
+  }
+  const texto = (candidato?.content?.parts ?? []).map((p) => p.text ?? "").join("");
+  if (!texto) throw new ErroIA("O Gemini não devolveu texto. Tente novamente.");
+  return texto;
 }
 
 // ---------- Geração de capítulos ----------

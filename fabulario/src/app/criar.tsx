@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { Chip } from "../lib/componentes";
+import { gravarImagem } from "../lib/arquivos";
 import { escolherFoto, type Foto } from "../lib/fotos";
 import { ErroIA, gerarCapitulo } from "../lib/ia";
 import { IDIOMAS, novoId, salvarHistoria, type Historia, type Idioma } from "../lib/storage";
@@ -51,9 +52,17 @@ export default function Criar() {
         { ...base, titulo: "", resumo: "", capitulos: [] },
         fotos.map((f) => ({ nome: f.nome.trim(), base64: f.base64 })),
       );
+      const id = novoId();
+      const fotosGuardadas = await Promise.all(
+        fotos.map(async (f, i) => ({
+          nome: f.nome.trim(),
+          arquivo: await gravarImagem(id, `foto-${i + 1}`, f.base64, "jpg"),
+        })),
+      );
       const historia: Historia = {
         ...base,
-        id: novoId(),
+        id,
+        fotos: fotosGuardadas.length ? fotosGuardadas : undefined,
         titulo: cap.titulo_historia,
         resumo: cap.resumo_atualizado,
         descricaoPersonagens: cap.descricao_personagens,
@@ -119,7 +128,7 @@ export default function Criar() {
       <Text style={estilos.rotulo}>Fotos para criar personagens (opcional)</Text>
       <Text style={{ color: cores.suave }}>
         Junte fotos de pessoas, animais, brinquedos ou desenhos. A IA cria as personagens a partir
-        delas. As fotos são enviadas à IA só para criar a história e não ficam guardadas na app.
+        delas. As fotos ficam guardadas só neste aparelho e são enviadas à IA para criar a história e os desenhos do modo manga.
       </Text>
       {fotos.map((f, i) => (
         <View key={f.uri} style={s.foto}>

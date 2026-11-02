@@ -4,6 +4,13 @@ import { Chip } from "../lib/componentes";
 import {
   MODELO_GEMINI_PADRAO,
   obterChaveApi,
+  obterChavePollinations,
+  obterFornecedorImagem,
+  obterModeloImagemGemini,
+  salvarChavePollinations,
+  salvarFornecedorImagem,
+  salvarModeloImagemGemini,
+  type FornecedorImagem,
   obterChaveGemini,
   obterFornecedor,
   obterModeloGemini,
@@ -20,6 +27,9 @@ export default function Configuracoes() {
   const [chaveClaude, setChaveClaude] = useState("");
   const [chaveGemini, setChaveGemini] = useState("");
   const [modeloGemini, setModeloGemini] = useState("");
+  const [fornecedorImagem, setFornecedorImagem] = useState<FornecedorImagem>("gemini");
+  const [chavePollinations, setChavePollinations] = useState("");
+  const [modeloImagem, setModeloImagem] = useState("");
   const [mensagem, setMensagem] = useState<string | null>(null);
 
   useEffect(() => {
@@ -27,6 +37,9 @@ export default function Configuracoes() {
     obterChaveApi().then((c) => setChaveClaude(c ?? ""));
     obterChaveGemini().then((c) => setChaveGemini(c ?? ""));
     obterModeloGemini().then(setModeloGemini);
+    obterFornecedorImagem().then(setFornecedorImagem);
+    obterChavePollinations().then((c) => setChavePollinations(c ?? ""));
+    obterModeloImagemGemini().then(setModeloImagem);
   }, []);
 
   async function salvar() {
@@ -35,6 +48,10 @@ export default function Configuracoes() {
     await salvarChaveGemini(chaveGemini);
     await salvarModeloGemini(modeloGemini);
     setModeloGemini(await obterModeloGemini());
+    await salvarFornecedorImagem(fornecedorImagem);
+    await salvarChavePollinations(chavePollinations);
+    await salvarModeloImagemGemini(modeloImagem);
+    setModeloImagem(await obterModeloImagemGemini());
     setMensagem("Configurações guardadas neste aparelho.");
   }
 
@@ -96,6 +113,61 @@ export default function Configuracoes() {
             value={chaveClaude}
             onChangeText={alterar(setChaveClaude)}
             placeholder="sk-ant-..."
+            placeholderTextColor={cores.suave}
+            autoCapitalize="none"
+            autoCorrect={false}
+            secureTextEntry
+          />
+        </>
+      )}
+
+      <Text style={[estilos.rotulo, { marginTop: 24 }]}>Imagens (modo manga)</Text>
+      <View style={estilos.chips}>
+        <Chip
+          rotulo="Gemini"
+          ativo={fornecedorImagem === "gemini"}
+          onPress={() => alterar(setFornecedorImagem)("gemini")}
+        />
+        <Chip
+          rotulo="Pollinations (grátis)"
+          ativo={fornecedorImagem === "pollinations"}
+          onPress={() => alterar(setFornecedorImagem)("pollinations")}
+        />
+      </View>
+      {fornecedorImagem === "gemini" ? (
+        <>
+          <Text style={{ color: cores.suave }}>
+            Usa a mesma chave do Gemini. Melhor qualidade, balões de fala dentro do desenho e
+            personagens fiéis às fotos. Se a chave não tiver quota gratuita de imagens, é preciso
+            ativar a faturação no Google AI Studio (cerca de 4 cêntimos de dólar por página).
+          </Text>
+          <Text style={estilos.rotulo}>Modelo de imagem (opcional)</Text>
+          <TextInput
+            style={estilos.campo}
+            value={modeloImagem}
+            onChangeText={alterar(setModeloImagem)}
+            placeholder="automático"
+            placeholderTextColor={cores.suave}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <Text style={{ color: cores.suave, fontSize: 13 }}>
+            Deixe vazio para a app escolher sozinha um modelo de imagem disponível para a sua chave.
+          </Text>
+        </>
+      ) : (
+        <>
+          <Text style={{ color: cores.suave }}>
+            Grátis com créditos diários. Crie uma conta em enter.pollinations.ai, gere uma chave
+            secreta (começa por sk_) e cole-a aqui. Os desenhos são mais simples e as falas aparecem
+            por baixo de cada página.
+          </Text>
+          <Text style={estilos.rotulo}>Chave do Pollinations</Text>
+          <TextInput
+            style={estilos.campo}
+            value={chavePollinations}
+            onChangeText={alterar(setChavePollinations)}
+            placeholder="sk_..."
             placeholderTextColor={cores.suave}
             autoCapitalize="none"
             autoCorrect={false}

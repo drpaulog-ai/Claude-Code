@@ -14,10 +14,27 @@ export function nomeIdioma(codigo: Idioma): string {
   return IDIOMAS.find((i) => i.codigo === codigo)?.nome ?? codigo;
 }
 
+export type Fala = { personagem: string; texto: string };
+
+export type PaginaManga = {
+  arquivo: string; // URI do ficheiro da imagem no aparelho
+  vinhetas: { cena: string; narracao: string; falas: Fala[] }[];
+};
+
+export type Manga = {
+  estilo: string;
+  fornecedor: FornecedorImagem;
+  personagensVisuais: string; // descrição visual fixa (em inglês) usada em todas as páginas
+  paginas: PaginaManga[];
+};
+
 export type Capitulo = {
   titulo: string;
   texto: string;
+  manga?: Manga;
 };
+
+export type FotoGuardada = { nome: string; arquivo: string };
 
 export type Historia = {
   id: string;
@@ -28,7 +45,8 @@ export type Historia = {
   publico: string;
   idioma: Idioma;
   capitulos: Capitulo[];
-  descricaoPersonagens?: string; // aparência e personalidade (pode vir das fotos)
+  descricaoPersonagens?: string;
+  fotos?: FotoGuardada[]; // fotos usadas para criar as personagens (guardadas como ficheiros) // aparência e personalidade (pode vir das fotos)
   resumo: string; // resumo de tudo o que aconteceu até agora (para manter coerência)
   criadaEm: number;
 };
@@ -160,4 +178,37 @@ export async function obterModeloGemini(): Promise<string> {
 
 export async function salvarModeloGemini(modelo: string): Promise<void> {
   await guardar(CHAVE_MODELO_GEMINI, normalizarModelo(modelo));
+}
+
+// ---------- Imagens (modo manga) ----------
+
+export type FornecedorImagem = "gemini" | "pollinations";
+
+const CHAVE_FORNECEDOR_IMAGEM = "fabulario_fornecedor_imagem";
+const CHAVE_POLLINATIONS = "fabulario_pollinations_key";
+const CHAVE_MODELO_IMAGEM_GEMINI = "fabulario_gemini_modelo_imagem";
+
+export async function obterFornecedorImagem(): Promise<FornecedorImagem> {
+  return (await SecureStore.getItemAsync(CHAVE_FORNECEDOR_IMAGEM)) === "pollinations" ? "pollinations" : "gemini";
+}
+
+export async function salvarFornecedorImagem(f: FornecedorImagem): Promise<void> {
+  await SecureStore.setItemAsync(CHAVE_FORNECEDOR_IMAGEM, f);
+}
+
+export async function obterChavePollinations(): Promise<string | null> {
+  return SecureStore.getItemAsync(CHAVE_POLLINATIONS);
+}
+
+export async function salvarChavePollinations(chave: string): Promise<void> {
+  await guardar(CHAVE_POLLINATIONS, chave);
+}
+
+/** Vazio = a app escolhe automaticamente um modelo de imagem disponível para a chave. */
+export async function obterModeloImagemGemini(): Promise<string> {
+  return normalizarModelo((await SecureStore.getItemAsync(CHAVE_MODELO_IMAGEM_GEMINI)) ?? "");
+}
+
+export async function salvarModeloImagemGemini(modelo: string): Promise<void> {
+  await guardar(CHAVE_MODELO_IMAGEM_GEMINI, normalizarModelo(modelo));
 }

@@ -9,7 +9,7 @@ import {
   View,
   type ScrollViewInstance,
 } from "react-native";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import * as Speech from "expo-speech";
 import { Chip } from "../../lib/componentes";
 import { ErroIA, gerarCapitulo, traduzirPalavra, type Traducao } from "../../lib/ia";
@@ -251,6 +251,17 @@ export default function Leitor() {
       <ScrollView ref={scrollRef} contentContainerStyle={[estilos.conteudo, { paddingBottom: 140 }]}>
         <Text style={s.numeroCapitulo}>Capítulo {capIdx + 1}</Text>
         <Text style={estilos.titulo}>{capitulo.titulo}</Text>
+        <Pressable
+          style={[estilos.botaoSecundario, { paddingVertical: 10 }]}
+          onPress={() => {
+            parar();
+            router.push({ pathname: "/manga/[id]", params: { id: historia.id, cap: String(capIdx) } });
+          }}
+        >
+          <Text style={estilos.botaoSecundarioTexto}>
+            {capitulo.manga ? "🎨 Ver em manga" : "🎨 Criar versão manga"}
+          </Text>
+        </Pressable>
         <Text style={{ color: cores.suave, fontSize: 13 }}>
           Toque numa palavra para traduzir · toque e segure para ouvir a partir dali
         </Text>

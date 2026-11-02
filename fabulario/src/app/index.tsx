@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { Alert, FlatList, Pressable, Text, View } from "react-native";
 import { Link, router, useFocusEffect } from "expo-router";
+import { apagarPastaHistoria } from "../lib/arquivos";
 import { apagarHistoria, listarHistorias, nomeIdioma, type Historia } from "../lib/storage";
 import { cores, estilos } from "../lib/tema";
 
@@ -21,6 +22,7 @@ export default function Inicio() {
         style: "destructive",
         onPress: async () => {
           await apagarHistoria(h.id);
+          apagarPastaHistoria(h.id);
           setHistorias(await listarHistorias());
         },
       },

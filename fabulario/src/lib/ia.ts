@@ -23,7 +23,7 @@ type PedidoJSON = {
 };
 
 /** Faz um pedido que devolve JSON, usando o fornecedor escolhido nas Configurações. */
-async function pedirJSON<T>(params: PedidoJSON): Promise<T> {
+export async function pedirJSON<T>(params: PedidoJSON): Promise<T> {
   const texto =
     (await obterFornecedor()) === "gemini" ? await pedirGemini(params) : await pedirClaude(params);
   try {
@@ -99,19 +99,35 @@ async function pedirClaude(params: PedidoJSON): Promise<string> {
 
 // ---------- Gemini (Google) ----------
 
-const URL_GEMINI = "https://generativelanguage.googleapis.com/v1beta";
+export const URL_GEMINI = "https://generativelanguage.googleapis.com/v1beta";
 
 /** Converte o JSON Schema usado no Claude para o formato de schema do Gemini. */
 function schemaGemini(schema: Record<string, unknown>): Record<string, unknown> {
-  const props = schema.properties as Record<string, { type: string }>;
-  return {
-    type: "OBJECT",
-    properties: Object.fromEntries(
-      Object.entries(props).map(([k, v]) => [k, { type: v.type.toUpperCase() }]),
-    ),
-    required: schema.required,
-    propertyOrdering: Object.keys(props),
+  const tipo = String(schema.type).toUpperCase();
+  if (tipo === "OBJECT") {
+    const props = schema.properties as Record<string, Record<string, unknown>>;
+    return {
+      type: "OBJECT",
+      properties: Object.fromEntries(Object.entries(props).map(([k, v]) => [k, schemaGemini(v)])),
+      required: schema.required,
+      propertyOrdering: Object.keys(props),
+    };
+  }
+  if (tipo === "ARRAY") {
+    return { type: "ARRAY", items: schemaGemini(schema.items as Record<string, unknown>) };
+  }
+  return { type: tipo };
+}
+
+/** Lista os modelos Gemini disponíveis para a chave que suportam generateContent. */
+export async function listarModelosGemini(chave: string): Promise<string[]> {
+  const r = await fetch(`${URL_GEMINI}/models?pageSize=200`, { headers: { "x-goog-api-key": chave } });
+  const json = (await r.json()) as {
+    models?: { name: string; supportedGenerationMethods?: string[] }[];
   };
+  return (json.models ?? [])
+    .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
+    .map((m) => m.name.replace(/^models\//, ""));
 }
 
 async function modelosGemini(chave: string): Promise<string> {
